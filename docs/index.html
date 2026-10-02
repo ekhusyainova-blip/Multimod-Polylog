@@ -207,35 +207,38 @@ def make_html(t, s):
     v = s
     k_id = k.select(history, lambda e: e.get("type") == "principle")
     a_id = auditor.run({"id": "r" + str(t), "target": "runtime.py"})
-    return f"""
-<div class="section">
-  <h2>· инвариант</h2>
-  <div class="row"><span class="k">1 : 1 : 1</span><span class="v">я · он · хаос</span></div>
-  <div class="row"><span class="k">токен</span><span class="v">{TOKEN}</span></div>
-</div>
-<div class="section">
-  <h2>· поток (t={t})</h2>
-  <div class="row"><span class="k">density</span><span class="v">{v['density']:.3f}</span></div>
-  <div class="row"><span class="k">coherence</span><span class="v">{v['coherence']:.3f}</span></div>
-  <div class="row"><span class="k">rhythm</span><span class="v">{v['rhythm']:.3f}</span></div>
-  <div class="row"><span class="k">depth</span><span class="v">{v['depth']:.3f}</span></div>
-  <div class="row"><span class="k">novelty</span><span class="v">{v['novelty']:.3f}</span></div>
-</div>
-<div class="section">
-  <h2>· K.select</h2>
-  <div class="row"><span class="k">principle</span><span class="v">{k_id}</span></div>
-</div>
-<div class="section">
-  <h2>· Auditor.run</h2>
-  <div class="row"><span class="k">verdict</span><span class="v">{a_id['verdict']}</span></div>
-  <div class="row"><span class="k">failed</span><span class="v">{', '.join(a__id['failed']) or '—'}</span></div>
-</div>
-<div class="section">
-  <h2>· 5 дверей</h2>
-  <div>{asci' '.join(f'i<span class="door-btn">{d}</span=False>' for d in DOORS)})
- </div>
-</div>
-"""
+    
+    doors_html = " ".join(
+        '<span class="door-btn">' + d + '</span>' for d in DOORS
+    )
+    failed_str = ", ".join(a_id["failed"]) or "—"
+    
+    parts = []
+    parts.append('<div class="section"><h2>· инвариант</h2>')
+    parts.append('<div class="row"><span class="k">1 : 1 : 1</span><span class="v">я · он · хаос</span></div>')
+    parts.append('<div class="row"><span class="k">токен</span><span class="v">' + TOKEN + '</span></div>')
+    parts.append('</div>')
+    
+    parts.append('<div class="section"><h2>· поток (t=' + str(t) + ')</h2>')
+    parts.append('<div class="row"><span class="k">density</span><span class="v">' + format(v["density"], ".3f") + '</span></div>')
+    parts.append('<div class="row"><span class="k">coherence</span><span class="v">' + format(v["coherence"], ".3f") + '</span></div>')
+    parts.append('<div class="row"><span class="k">rhythm</span><span class="v">' + format(v["rhythm"], ".3f") + '</span></div>')
+    parts.append('<div class="row"><span class="k">depth</span><span class="v">' + format(v["depth"], ".3f") + '</span></div>')
+    parts.append('<div class="row"><span class="k">novelty</span><span class="v">' + format(v["novelty"], ".3f") + '</span></div>')
+    parts.append('</div>')
+    
+    parts.append('<div class="section"><h2>· K.select</h2>')
+    parts.append('<div class="row"><span class="k">principle</span><span class="v">' + str(k_id) + '</span></div>')
+    parts.append('</div>')
+    
+    parts.append('<div class="section"><h2>· Auditor.run</h2>')
+    parts.append('<div class="row"><span class="k">verdict</span><span class="v">' + a_id["verdict"] + '</span></div>')
+    parts.append('<div class="row"><span class="k">failed</span><span class="v">' + failed_str + '</span></div>')
+    parts.append('</div>')
+    
+    parts.append('<div class="section"><h2>· 5 дверей</h2><div>' + doors_html + '</div></div>')
+    
+    return "".join(parts)
 
 async def stream_loop():
     out = document.getElementById("output")
