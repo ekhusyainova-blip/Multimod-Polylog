@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#050508">
+<title>Multimod Polilog · Stream</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html, body { height:100%; background:#050508; color:#c8c8d4;
+  font: 14px/1.4 'Courier New', monospace; overflow:hidden; }
+
+#app { position:absolute; inset:0; display:grid;
+  grid-template-rows: auto 1fr auto; }
+
+#header { padding:10px 14px; background:#08080c;
+  border-bottom:1px solid #14141c;
+  display:flex; gap:10px; align-items:center; font-size:10px;
+  letter-spacing:1.4px; flex-wrap:wrap; }
+#header .core { color:#e8c39e; font-weight:bold; }
+#header .tok  { color:#4dd0c7; }
+#header .st   { color:#8888a0; }
+#header .fps  { color:#a78bfa; margin-left:auto; }
+
+#main { position:relative; overflow:hidden; }
+
+#canvas { position:absolute; inset:0; width:100%; height:100%;
+  display:block; image-rendering:pixelated; }
+
+#doors { position:absolute; top:10px; left:10px; right:10px;
+  display:flex; gap:6px; flex-wrap:wrap; z-index:3; }
+#doors button { background:#0e0e14; border:1px solid #1c1c26;
+  color:#8888a0; padding:6px 10px;
+  font:9px 'Courier New', monospace; letter-spacing:1.2px;
+  cursor:pointer; text-transform:uppercase; }
+#doors button.on { border-color:#4dd0c7; color:#4dd0c7; }
+
+#invariant { position:absolute; top:50%; left:50%;
+  transform:translate(-50%,-50%);
+  font-size:40px; letter-spacing:8px;
+  color:#e8c39e; z-index:3;
+  text-shadow:0 0 20px #050508, 0 0 40px #050508;
+  pointer-events:none; }
+
+#stress-wrap { position:absolute; left:10px; bottom:10px;
+  width:220px; z-index:3; }
+#stress-label { font-size:9px; color:#44445a;
+  letter-spacing:1.4px; text-transform:uppercase;
+  margin-bottom:4px; }
+#stress-bar { height:6px; background:#14141c; position:relative; }
+#stress-fill { position:absolute; left:0; top:0; bottom:0;
+  width:0; background:#ff6b9d; transition:width .2s; }
+
+#footer { padding:10px 14px; background:#08080c;
+  border-top:1px solid #14141c;
+  display:flex; gap:10px; align-items:center;
+  font-size:9px; letter-spacing:1.2px;
+  text-transform:uppercase; color:#44445a; flex-wrap:wrap; }
+#footer button { background:#0e0e14; border:1px solid #1c1c26;
+  color:#8888a0; padding:8px 12px;
+  font:9px 'Courier New', monospace;
+  letter-spacing:1.2px; cursor:pointer;
+  text-transform:uppercase; }
+#footer button:hover { border-color:#4dd0c7; color:#4dd0c7; }
+#status { margin-left:auto; color:#8888a0; }
+#status.on { color:#2ed573; }
+#status.off { color:#ff4757; }
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <div id="header">
+    <span class="core">𝕄_full</span>
+    <span class="tok">MONOMOD::MM5FFF681946L6G6A111</span>
+    <span class="st" id="h-status">stream: off</span>
+    <span class="fps" id="h-fps">-- Hz</span>
+  </div>
+
+  <div id="main">
+    <canvas id="canvas"></canvas>
+
+    <div id="doors"></div>
+
+    <div id="invariant">1 : 1 : 1</div>
+
+    <div id="stress-wrap">
+      <div id="stress-label">stress · хаос снизу</div>
+      <div id="stress-bar"><div id="stress-fill"></div></div>
+    </div>
+  </div>
+
+  <div id="footer">
+    <button id="btn-sound">🔊 звук: выкл</button>
+    <button id="btn-reconnect">⟳ переподключить</button>
+    <span id="status" class="off">disconnected</span>
+  </div>
+
+</div>
+
+<script>
+"use strict";
+
+const WS_URL = (location.protocol === "https:" ? "wss://" : "ws://")
+  + location.host + "/ws/state";
+
+let ws = null;
+let lastState = null;
+let canvas, ctx, W, H, cw, ch;
+let doorsEl, statusEl, fpsEl, stressFill;
+
+let audioCtx = null;
+let osc = null;
+let noiseSource = null;
+let gainMain = null;
+let soundOn = false;
+
+// fps measure
+let frameTimes = [];
+let measuredFps = 60;
+
+// реконнект
+let reconnectDelay = 1000;
+let reconnectTimer = null;
+
+// ─── инициализация ────────────────────────────────────────────
+function boot() {
+  canvas = document.getElementById("canvas");
+  ctx = canvas.getContext("2d");
+  doorsEl = document.getElementById("doors");
+  statusEl = document.getElementById("status");
+  fpsEl = document.getElementById("h-fps");
+  stressFill = document.getElementById("stress-fill");
+
+  resize();
+  window.addEventListener("resize", resize);
+
+  document.getElementById("btn-sound").addEventListener("click", toggleSound);
+  document.getElementById("btn-reconnect").addEventListener("click", () => {
+    if (ws) try { ws.close(); } catch (e) {}
+    connect();
+  });
+
+  measureFps();
+  connect();
+  renderLoop();
+}
+
+function resize() {
+  W = canvas.width = canvas.clientWidth;
+  H = canvas.height = canvas.clientHeight;
+  cw = W / 64; ch = H / 64;
+}
+
+// ─── WebSocket ────────────────────────────────────────────────
+function connect() {
+  clearTimeout(reconnectTimer);
+  setStatus("connecting…", "off");
+
+  try {
+    ws = new WebSocket(WS_URL);
+  } catch (e) {
+    setStatus("bad url: " + e.message, "off");
+    scheduleReconnect();
+    return;
+  }
+
+  ws.onopen = () => {
+    setStatus("connected", "on");
+    reconnectDelay = 1000;
+    ws.send(JSON.stringify({ type: "client_capability", fps: measuredFps }));
+  };
+
+  ws.onmessage = (ev) => {
+    try {
+      lastState = JSON.parse(ev.data);
+    } catch (e) { /* ignore */ }
+  };
+
+  ws.onclose = () => {
+    setStatus("disconnected", "off");
+    scheduleReconnect();
+  };
+
+  ws.onerror = () => {
+    setStatus("error", "off");
+  };
+}
+
+function scheduleReconnect() {
+  reconnectTimer = setTimeout(() => {
+    reconnectDelay = Math.min(reconnectDelay * 1.5, 15000);
+    connect();
+  }, reconnectDelay);
+}
+
+function setStatus(text, cls) {
+  statusEl.textContent = text;
+  statusEl.className = cls;
+}
+
+// ─── fps measure ──────────────────────────────────────────────
+function measureFps() {
+  let frames = 0;
+  let last = performance.now();
+
+  function tick(now) {
+    frames++;
+    if (now - last >= 1000) {
+      measuredFps = Math.round(frames * 1000 / (now - last));
+      frames = 0; last = now;
+      fpsEl.textContent = measuredFps + " Hz";
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: "client_capability", fps: measuredFps }));
+      }
+    }
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+// ─── 5 дверей ─────────────────────────────────────────────────
+let doorsBuilt = false;
+function buildDoors() {
+  if (doorsBuilt || !lastState) return;
+  doorsEl.innerHTML = "";
+  for (const d of lastState.doors) {
+    const b = document.createElement("button");
+    b.textContent = d;
+    b.dataset.door = d;
+    b.addEventListener("click", () => {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: "set_door", door: d }));
+      }
+    });
+    doorsEl.appendChild(b);
+  }
+  doorsBuilt = true;
+  markDoor(lastState.door);
+}
+
+function markDoor(door) {
+  for (const b of doorsEl.children) {
+    b.classList.toggle("on", b.dataset.door === door);
+  }
+}
+
+// ─── render ───────────────────────────────────────────────────
+let t = 0;
+
+function renderLoop() {
+  t++;
+  if (lastState) {
+    buildDoors();
+    markDoor(lastState.door);
+    drawState(lastState);
+    stressFill.style.width = (lastState.stress * 100) + "%";
+  } else {
+    drawIdle();
+  }
+  requestAnimationFrame(renderLoop);
+}
+
+function drawState(s) {
+  const v = s.v;
+  ctx.fillStyle = "#050508";
+  ctx.fillRect(0, 0, W, H);
+
+  // цвет по depth
+  const hue = (v.depth * 180 + 30) % 360;
+
+  // мягкий градиент
+  const g = ctx.createRadialGradient(W/2, H/2, 20, W/2, H/2, Math.min(W,H)/2);
+  g.addColorStop(0, `hsla(${hue}, 60%, 40%, ${0.4 + v.density * 0.4})`);
+  g.addColorStop(1, "hsla(240, 20%, 5%, 0)");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+
+  // точки по rhythm
+  const n = 24;
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * Math.PI * 2 + s.t * 0.01;
+    const r = 40 + v.rhythm * 120 + Math.sin(s.t * 0.03 + i) * 15;
+    const x = W/2 + Math.cos(a) * r;
+    const y = H/2 + Math.sin(a) * r;
+    const rad = 1.5 + v.coherence * 3;
+    ctx.fillStyle = `hsla(${(hue + i * 4) % 360}, 70%, 60%, ${0.5 + v.novelty * 0.4})`;
+    ctx.beginPath();
+    ctx.arc(x, y, rad, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // центральное ядро
+  ctx.fillStyle = "#e8c39e";
+  ctx.beginPath();
+  ctx.arc(W/2, H/2, 3 + v.depth * 4, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawIdle() {
+  ctx.fillStyle = "#050508";
+  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = "#1c1c26";
+  ctx.beginPath();
+  ctx.arc(W/2, H/2, 3, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+// ─── звук ─────────────────────────────────────────────────────
+function toggleSound() {
+  if (!soundOn) {
+    startSound();
+  } else {
+    stopSound();
+  }
+}
+
+function startSound() {
+  try {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    // 110 Гц — базовый гул
+    osc = audioCtx.createOscillator();
+    osc.type = "sine";
+    osc.frequency.value = 110;
+
+    // белый шум — хаос
+    const bufSize = 2 * audioCtx.sampleRate;
+    const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+    noiseSource = audioCtx.createBufferSource();
+    noiseSource.buffer = buf;
+    noiseSource.loop = true;
+
+    const noiseGain = audioCtx.createGain();
+    noiseGain.gain.value = 0.02;
+
+    gainMain = audioCtx.createGain();
+    gainMain.gain.value = 0.15;
+
+    osc.connect(gainMain);
+    noiseSource.connect(noiseGain);
+    noiseGain.connect(gainMain);
+    gainMain.connect(audioCtx.destination);
+
+    osc.start();
+    noiseSource.start();
+    soundOn = true;
+    document.getElementById("btn-sound").textContent = "🔊 звук: вкл";
+
+    // обновление звука по состоянию
+    setInterval(() => {
+      if (!soundOn || !lastState || !audioCtx) return;
+      const s = lastState;
+      osc.frequency.value = 110 + s.v.depth * 80;
+      gainMain.gain.value = 0.1 + s.v.density * 0.15;
+      noiseGain.gain.value = 0.005 + s.stress * 0.06;
+    }, 100);
+  } catch (e) {
+    console.warn("audio failed:", e);
+  }
+}
+
+function stopSound() {
+  try {
+    if (osc) { osc.stop(); osc.disconnect(); osc = null; }
+    if (noiseSource) { noiseSource.stop(); noiseSource.disconnect(); noiseSource = null; }
+    if (gainMain) { gainMain.disconnect(); gainMain = null; }
+    if (audioCtx) { audioCtx.close(); audioCtx = null; }
+  } catch (e) {}
+  soundOn = false;
+  document.getElementById("btn-sound").textContent = "🔊 звук: выкл";
+}
+
+// ─── start ────────────────────────────────────────────────────
+boot();
+</script>
+
+</body>
+</html>
