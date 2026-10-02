@@ -40,17 +40,18 @@ html, body { height:100%; background:#050508; color:#c8c8d4;
   white-space:pre-wrap; font-size:15px; line-height:1.8;
   color:#d8d8e0;
   text-shadow:0 0 20px #050508, 0 0 40px #050508, 0 0 60px #050508;
-  pointer-events:none; }
+  pointer-events:none;
+  z-index: 3; }
 
 #inv { position:absolute; top:8px; right:12px;
   font-size:13px; letter-spacing:4px; color:#e8c39e;
-  opacity:0.85; }
+  opacity:0.85;
+  z-index: 3; }
 
 #panel { position:absolute; left:10px; top:8px;
   display:grid; grid-template-columns:auto auto; gap:2px 10px;
-  font-size:9px; color:#44445a; pointer-events:none; }
-#panel .k { color:#4dd0c7; text-transform:uppercase; letter-spacing:1.2px; }
-#panel .v { color:#c8c8d4; font-variant-numeric:tabular-nums; text-align:right; }
+  font-size:9px; color:#44445a; pointer-events:none;
+  z-index: 3; }
 
 #audit-block { position:absolute; left:10px; right:10px; top:50%;
   transform:translateY(-50%);
@@ -298,7 +299,7 @@ streaming = False
 show_audit = False
 
 # ─── canvas CA ─────────────────────────────────────────────
-GW, GH = 32, 32   # меньше, чем 64 — для iPhone
+GW, GH = 64, 64   # как в v10.3
 grid = [0.0] * (GW * GH)
 
 def init_grid():
