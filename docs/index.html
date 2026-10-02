@@ -1,233 +1,91 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<title>MONOMOD · klepa</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MONOMOD</title>
 <style>
-* { margin:0; padding:0; box-sizing:border-box; }
-html, body { height:100%; background:#050508; color:#c8c8d4;
-  font:12px/1.5 'Courier New', monospace; overflow:hidden; }
-#app { display:grid; grid-template-rows: auto 1fr auto; height:100%; }
-#header { padding:8px 12px; background:#08080c;
-  border-bottom:1px solid #14141c; font-size:10px;
-  letter-spacing:1.2px; display:flex; gap:8px; }
-#header .core { color:#e8c39e; font-weight:bold; }
-#header .tok { color:#4dd0c7; font-size:9px; }
-#header .st { color:#8888a0; margin-left:auto; }
-#main { position:relative; overflow:auto; padding:12px; }
-#vars { font-size:11px; }
-#vars .row { display:flex; justify-content:space-between;
-  padding:3px 0; border-bottom:1px solid #14141c; }
-#vars .name { color:#4dd0c7; }
-#vars .val { color:#c8c8d4; }
-#vars .ratio { color:#e8c39e; font-size:10px; }
-#footer { padding:8px 12px; background:#08080c;
-  border-top:1px solid #14141c; font-size:10px;
-  color:#8888a0; display:flex; gap:12px; }
-#footer .k { color:#4dd0c7; }
+body { margin:0; background:#050508; color:#c8c8d4;
+  font:14px 'Courier New', monospace; padding:20px; }
+#t { color:#4dd0c7; font-size:10px; }
+#state { color:#8888a0; font-size:10px; margin:10px 0; }
+#text { color:#e8c39e; font-size:22px; line-height:1.6;
+  text-align:center; margin-top:40px; }
 </style>
 </head>
 <body>
-
-<div id="app">
-  <div id="header">
-    <span class="core">MONOMOD</span>
-    <span class="tok">MM5FFF681946L6G6A111</span>
-    <span class="st" id="status">loading pyodide…</span>
-  </div>
-  <div id="main">
-    <div id="center"></div>
-    <div id="vars"></div>
-  </div>
-  <div id="footer">
-    <span>t: <span class="k" id="t">0</span></span>
-    <span>vars: <span class="k" id="nvars">0</span></span>
-    <span>mode: <span class="k" id="mode">mixed</span></span>
-  </div>
-</div>
+<div id="t">t: 0</div>
+<div id="state">loading…</div>
+<div id="text"></div>
 
 <script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
 
-<script type="text/python" id="klepa-code">
-import math
+<script type="text/python" id="brain-code">
 from js import document
+import asyncio
 
-# ─── Token ─────────────────────────────────────────────────
-class Token:
-    RAW = "MONOMOD::MM5FFF681946L6G6A111"
-
-    @classmethod
-    def axes(cls):
-        raw = cls.RAW.replace("::", "")
-        return [ord(c) for c in raw]
-
-    @classmethod
-    def names(cls):
-        raw = cls.RAW.replace("::", "")
-        return [f"s{i}:{c}" for i, c in enumerate(raw)]
-
-    @classmethod
-    def center(cls):
-        a = cls.axes()
-        return sum(a) / len(a)
-
-
-# ─── Var ───────────────────────────────────────────────────
-class Var:
-    def __init__(self, name, lo, hi, center):
-        self.name = name
-        self.lo = lo
-        self.hi = hi
-        self.center = center
-        self.value = (lo + hi) / 2
-
-    def elasticity(self):
-        return self.hi - self.lo
-
-    def pull_to(self, target):
-        self.value = max(self.lo, min(self.hi, target))
-
-    def center_ratio(self):
-        return self.value / self.center if self.center != 0 else 0
-
-
-# ─── Field ─────────────────────────────────────────────────
-class Field:
-    def __init__(self, mode="mixed"):
-        self.mode = mode
-        self.center = Token.center()
-        self.vars = {}
+class Brain:
+    def __init__(self):
+        self.coords = [ord(c) for c in "MONOMODMM5FFF681946L6G6A111"]
         self.t = 0
-
-        # стартовые 26 координат
-        for name, val in zip(Token.names(), Token.axes()):
-            self.vars[name] = Var(name, val * 0.95, val * 1.05, self.center)
-
-    def offset(self, t):
-        if self.mode == "stable":
-            return math.sin((t % 26) / 26 * 2 * math.pi) * 0.05
-        if self.mode == "drift":
-            return math.sin(t * 0.01) * 0.05
-        # mixed
-        return (
-            math.sin((t % 26) / 26 * 2 * math.pi) * 0.05
-            + math.sin(t * 0.001) * 0.005
-        )
-
-    def spawn(self):
-        # уровень 2: center-var
-        for name in list(self.vars):
-            r = self.vars[name].center_ratio()
-            if abs(r - 1.0) > 0.2:
-                new = f"c_{name}"
-                if new not in self.vars:
-                    self.vars[new] = Var(
-                        new, r * 0.9, r * 1.1, self.center
-                    )
-
-        # уровень 3: ratio-of-ratio
-        c_names = [n for n in self.vars if n.startswith("c_")]
-        for i, a in enumerate(c_names):
-            for b in c_names[i+1:]:
-                va, vb = self.vars[a], self.vars[b]
-                r = va.value / vb.value if vb.value != 0 else 0
-                if abs(r - 1.0) > 0.2:
-                    new = f"r_{a}_{b}"
-                    if new not in self.vars:
-                        self.vars[new] = Var(
-                            new, r * 0.9, r * 1.1, self.center
-                        )
+        self.state = {}
 
     def tick(self):
         self.t += 1
-        off = self.offset(self.t)
-        for v in self.vars.values():
-            v.pull_to(v.value + off)
-        # spawn раз в 5 шагов (не каждый — иначе взрыв)
-        if self.t % 5 == 0:
-            self.spawn()
-
-    def snapshot(self):
-        return {
-            "t": self.t,
-            "center": self.center,
-            "vars": {n: v.value for n, v in self.vars.items()},
-            "center_ratios": {
-                n: v.center_ratio() for n, v in self.vars.items()
-            },
-            "n_vars": len(self.vars),
+        self.state = {
+            "density":   ((self.coords[0] + self.t) % 100) / 100,
+            "coherence": ((self.coords[1] + self.t * 2) % 100) / 100,
+            "rhythm":    ((self.coords[2] + self.t * 3) % 100) / 100,
+            "depth":     ((self.coords[3] + self.t * 5) % 100) / 100,
+            "novelty":   ((self.coords[4] + self.t * 7) % 100) / 100,
         }
 
+    def decide(self):
+        s = self.state
+        if s["density"] < 0.3:   return "words"
+        if s["coherence"] < 0.3: return "atoms"
+        if s["rhythm"] < 0.3:    return "syllables"
+        if s["depth"] < 0.3:     return "phrases"
+        return "canvas"
 
-# ─── Klepa ─────────────────────────────────────────────────
-class Klepa:
-    def __init__(self, mode="mixed"):
-        self.field = Field(mode=mode)
+    def text(self):
+        form = self.decide()
+        if form == "atoms":
+            return "· ∙ ·"
+        if form == "syllables":
+            return "ra ql mh"
+        if form == "words":
+            return "узел дом запрос"
+        if form == "phrases":
+            return "Клепа ведёт. Голос один."
+        return "1 : 1 : 1"
 
-    def tick(self):
-        self.field.tick()
-
-    def snapshot(self):
-        return self.field.snapshot()
-
-
-# ─── render ────────────────────────────────────────────────
-def render(snap):
-    doc = document
-    doc.getElementById("t").textContent = str(snap["t"])
-    doc.getElementById("nvars").textContent = str(snap["n_vars"])
-    doc.getElementById("mode").textContent = _mode
-
-    c = doc.getElementById("center")
-    c.innerHTML = f"<div class='row'><span class='name'>center</span><span class='val'>{snap['center']:.3f}</span></div>"
-
-    rows = []
-    items = list(snap["vars"].items())[:30]  # первые 30
-    for name, val in items:
-        r = snap["center_ratios"][name]
-        rows.append(
-            f"<div class='row'>"
-            f"<span class='name'>{name}</span>"
-            f"<span class='val'>{val:.3f}</span>"
-            f"<span class='ratio'>×{r:.3f}</span>"
-            f"</div>"
-        )
-    doc.getElementById("vars").innerHTML = "".join(rows)
-
-
-# ─── main loop ─────────────────────────────────────────────
-_mode = "mixed"
-k = Klepa(mode=_mode)
+brain = Brain()
 
 async def loop():
-    import asyncio
-    from js import document
-    document.getElementById("status").textContent = "running"
+    doc = document
     while True:
-        k.tick()
-        render(k.snapshot())
+        brain.tick()
+        doc.getElementById("t").textContent = f"t: {brain.t}"
+        doc.getElementById("state").textContent = (
+            f"d={brain.state['density']:.2f} "
+            f"c={brain.state['coherence']:.2f} "
+            f"r={brain.state['rhythm']:.2f}"
+        )
+        doc.getElementById("text").textContent = brain.text()
         await asyncio.sleep(0.1)
 </script>
 
 <script>
-"use strict";
-
 async function init() {
   const pyodide = await loadPyodide({
     indexURL: "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/"
   });
-  const code = document.getElementById("klepa-code").textContent;
+  const code = document.getElementById("brain-code").textContent;
   await pyodide.runPythonAsync(code);
   await pyodide.runPythonAsync("import asyncio; asyncio.ensure_future(loop())");
 }
-
-init().catch(e => {
-  document.getElementById("status").textContent = "error: " + e.message;
-  console.error(e);
-});
+init().catch(e => console.error(e));
 </script>
-
 </body>
 </html>
