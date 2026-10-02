@@ -1,0 +1,55 @@
+{
+  "genome_id": "Multimod Polilog",
+  "token": "MONOMOD::MM5FFF681946L6G6A111",
+  "version": "0.4",
+  "created_at": "2026-10-01",
+
+  "decisions": {
+    "canon": {
+      "C1":  { "element": "MONOMOD::MM5FFF681946L6G6A111", "source": "user", "date": "2026-10-01" },
+      "C2":  { "element": "1 : 1 : 1 = я : он : хаос", "source": "user", "date": "2026-10-01" },
+      "C3":  { "element": "MONOMOD = МОНОЛОГ · DIMOD · MULTIMOD · ДИАЛОГ · ПОЛИЛОГ", "source": "user", "date": "2026-10-01" },
+      "C4":  { "element": "M_full ⊃ M+ ⊃ M++ ⊃ MONOMOD", "source": "user", "date": "2026-10-01" },
+      "C5":  { "element": "MONOMOD (5 мод)", "source": "user", "date": "2026-10-01" },
+      "C6":  { "element": "ХАОС не входит — не упаковывается", "source": "user", "date": "2026-10-01" },
+      "C7":  { "element": "границы: верхняя / нижняя / средняя", "source": "user", "date": "2026-10-01" },
+      "C8":  { "element": "C = A ⊕ B", "source": "user", "date": "2026-10-01" },
+      "C9":  { "element": "Multimod Polilog ⊃ MONOMOD", "source": "user", "date": "2026-10-01" },
+      "C10": { "element": "MONOMOD — двойной смысл", "source": "user", "date": "2026-10-01", "status": "open_question" },
+      "C11": { "element": "modes: solo / hybrid-peer / hybrid-cell / remote", "source": "user", "date": "2026-10-01" },
+      "C12": { "element": "mode definitions", "source": "user", "date": "2026-10-01", "classifies": "modes",
+               "definition": {
+                 "solo":        { "transport": "none",      "log": "audit.jsonl" },
+                 "hybrid-peer": { "transport": "localhost", "log": "peer_dialog_localhost.jsonl" },
+                 "hybrid-cell": { "transport": "local",     "log": "cell_dialog.jsonl" },
+                 "remote":      { "transport": "websocket", "log": "peer_dialog_remote.jsonl" }
+               }
+             }
+    },
+    "accepted": {
+      "A1":  { "element": "K = anchor (select / value / bind)", "source": "assistant", "accepted_by": "user", "date": "2026-10-01" },
+      "A2":  { "element": "K берёт точку, не создаёт", "source": "assistant", "accepted_by": "user", "date": "2026-10-01" },
+      "A5":  { "element": "гибрид: local=audit, peer/cell=dialog", "source": "assistant", "accepted_by": "user", "date": "2026-10-01" },
+      "A15": { "element": "one transport = one file = one mode", "source": "assistant", "accepted_by": "user", "date": "2026-10-01", "classifies": "log_policy" },
+      "A19": { "element": "circularity acknowledged", "source": "assistant", "accepted_by": "user", "date": "2026-10-01", "classifies": "provenance_policy" },
+      "A20": { "element": "history = deque(maxlen=1000) in-memory", "source": "assistant", "accepted_by": "user", "date": "2026-10-01" },
+      "A21": { "element": "Runtime.append_history(event)", "source": "assistant", "accepted_by": "user", "date": "2026-10-01" },
+      "A22": { "element": "history эфемерна по решению", "source": "assistant", "accepted_by": "user", "date": "2026-10-01" }
+    },
+    "refuted": {
+      "R1": { "element": "M#rqlmhwgt", "source": "assistant", "refuted_by": "user", "date": "2026-10-01", "reason": "фикция" }
+    }
+  },
+
+  "hypotheses": {
+    "H001": { "text": "K берёт точку из GIT, не создаёт", "status": "open", "introduced_at": "2026-10-01", "layer": "0" },
+    "H002": { "text": "p1..p10 — 10 компонент ядра", "status": "open", "introduced_at": "2026-10-01", "layer": "0" },
+    "H003": { "text": "M# = хэш-маркер ядра", "status": "open", "introduced_at": "2026-10-01", "layer": "0" }
+  },
+
+  "notes": {
+    "circularity": "A19: circularity acknowledged.",
+    "deferred": ["A16 (ante-factum marker)", "A17 (расширенный check_provenance)", "A18 (формат C/A/R/H)"],
+    "deferred_reason": "растут из реальности."
+  }
+}
