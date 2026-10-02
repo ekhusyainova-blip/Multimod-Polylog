@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-Multimod Polilog — backend v0.1.
+Multimod Polilog — backend v0.2.
 
 FastAPI-сервер:
   - 5 дверей (МОНОЛОГ, DIMOD, MULTIMOD, ДИАЛОГ, ПОЛИЛОГ)
   - инвариант 1:1:1 в реальном времени
-  - WebSocket /ws/state — поток состояния (адаптив 10–240 Гц)
+  - WebSocket /ws/state — НЕПРЕРЫВНЫЙ поток (без interval)
   - GET /app — отдаёт frontend
   - GET / — healthcheck
 
@@ -24,7 +24,6 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 
-# ─── runtime (мозг) ────────────────────────────────────────────
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent / "kernel"))
 
@@ -37,24 +36,17 @@ except Exception as e:
     RUNTIME_AVAILABLE = False
 
 
-# ─── 5 дверей ──────────────────────────────────────────────────
 DOORS = ["МОНОЛОГ", "DIMOD", "MULTIMOD", "ДИАЛОГ", "ПОЛИЛОГ"]
-
-# ─── инвариант 1:1:1 ───────────────────────────────────────────
 INVARIANT = {"я": 1, "он": 1, "хаос": 1}
-
-# ─── границы ───────────────────────────────────────────────────
 BOUNDARIES = {
     "top": "искусственная (ХАОС сверху не пускаем)",
     "middle": "𝕄_full ⊃ 𝕄+ ⊃ 𝕄++ ⊃ MONOMOD",
     "bottom": "1:1:1 (два человека держат ХАОС)",
 }
 
-# ─── frontend dir ──────────────────────────────────────────────
 FRONTEND_DIR = Path(__file__).parent.parent / "frontend"
 
 
-# ─── состояние (лёгкое, для UI) ────────────────────────────────
 class BackendState:
     def __init__(self):
         self.t = 0
@@ -65,9 +57,8 @@ class BackendState:
         self.novelty = 0.1
         self.stress = 0.0
         self.door = "МОНОЛОГ"
-        self.history = deque(maxlen=100)
 
-    def tick(self, dt: float = 0.0):
+    def tick(self):
         self.t += 1
         self.density = 0.5 + 0.5 * math.sin(self.t * 0.03)
         self.coherence = 0.5 + 0.5 * math.sin(self.t * 0.017 + 1.1)
@@ -95,32 +86,9 @@ class BackendState:
         }
 
 
-# ─── адаптивный streamer ──────────────────────────────────────
-class AdaptiveStreamer:
-    def __init__(self):
-        self.t_compute_ema = 5.0
-        self.min_freq = 10
-        self.max_freq = 240
-        self.target_freq = 60
-        self.client_fps = 60
-        self.channel_ok = True
-
-    def measure_compute(self, t_ms: float):
-        self.t_compute_ema += (t_ms - self.t_compute_ema) * 0.1
-
-    def recompute_target(self) -> float:
-        max_by_cpu = 1000.0 / max(1.0, self.t_compute_ema * 1.5)
-        target = min(self.max_freq, self.client_fps, max_by_cpu)
-        if not self.channel_ok:
-            target *= 0.8
-        return max(self.min_freq, target)
-
-
-# ─── app ───────────────────────────────────────────────────────
-app = FastAPI(title="Multimod Polilog backend", version="0.1")
+app = FastAPI(title="Multimod Polilog backend", version="0.2")
 
 state = BackendState()
-streamer = AdaptiveStreamer()
 
 rt = None
 if RUNTIME_AVAILABLE and Runtime is not None:
@@ -132,12 +100,11 @@ if RUNTIME_AVAILABLE and Runtime is not None:
         rt = None
 
 
-# ─── HTTP endpoints ────────────────────────────────────────────
 @app.get("/")
 async def root():
     return JSONResponse({
         "service": "Multimod Polilog backend",
-        "version": "0.1",
+        "version": "0.2",
         "token": "MONOMOD::MM5FFF681946L6G6A111",
         "runtime": RUNTIME_AVAILABLE and rt is not None,
         "doors": DOORS,
@@ -149,7 +116,6 @@ async def root():
 
 @app.get("/app")
 async def serve_app():
-    """Отдаёт frontend/index.html."""
     index = FRONTEND_DIR / "index.html"
     if not index.exists():
         return JSONResponse(
@@ -159,12 +125,10 @@ async def serve_app():
     return FileResponse(index)
 
 
-# монтируем статику frontend, если папка есть
 if FRONTEND_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="static")
 
 
-# ─── WebSocket ────────────────────────────────────────────────
 @app.websocket("/ws/state")
 async def ws_state(websocket: WebSocket):
     await websocket.accept()
@@ -174,9 +138,7 @@ async def ws_state(websocket: WebSocket):
         try:
             while True:
                 msg = await websocket.receive_json()
-                if msg.get("type") == "client_capability":
-                    streamer.client_fps = float(msg.get("fps", 60))
-                elif msg.get("type") == "set_door":
+                if msg.get("type") == "set_door":
                     door = msg.get("door")
                     if door in DOORS:
                         state.door = door
@@ -187,31 +149,21 @@ async def ws_state(websocket: WebSocket):
 
     recv_task = asyncio.create_task(receive_client())
 
-    last_frame = time.perf_counter()
     try:
         while True:
-            t0 = time.perf_counter()
             state.tick()
             snapshot = state.snapshot()
-            t_compute = (time.perf_counter() - t0) * 1000
-            streamer.measure_compute(t_compute)
 
-            target = streamer.recompute_target()
-            interval = 1.0 / target
+            try:
+                await asyncio.wait_for(
+                    websocket.send_json(snapshot),
+                    timeout=0.05,
+                )
+            except asyncio.TimeoutError:
+                pass
 
-            now = time.perf_counter()
-            if now - last_frame >= interval:
-                try:
-                    await asyncio.wait_for(
-                        websocket.send_json(snapshot),
-                        timeout=0.05,
-                    )
-                    streamer.channel_ok = True
-                except asyncio.TimeoutError:
-                    streamer.channel_ok = False
-                last_frame = now
-
-            await asyncio.sleep(0)
+            # 5 мс — ~200 состояний/сек. Frontend рисует по последнему.
+            await asyncio.sleep(0.005)
 
     except WebSocketDisconnect:
         print("[WS] client disconnected")
@@ -225,11 +177,10 @@ async def ws_state(websocket: WebSocket):
             pass
 
 
-# ─── main ──────────────────────────────────────────────────────
 if __name__ == "__main__":
     import uvicorn
     port = 8000
-    print(f"🧬 Multimod Polilog backend v0.1")
+    print(f"🧬 Multimod Polilog backend v0.2")
     print(f"   token: MONOMOD::MM5FFF681946L6G6A111")
     print(f"   app:   http://0.0.0.0:{port}/app")
     print(f"   ws:    ws://0.0.0.0:{port}/ws/state")
