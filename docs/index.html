@@ -4,603 +4,229 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black">
-<meta name="apple-mobile-web-app-title" content="Polilog">
-<meta name="theme-color" content="#050508">
-<link rel="manifest" href="manifest.json">
-<title>Multimod Polilog</title>
+<title>MONOMOD · klepa</title>
 <style>
-* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+* { margin:0; padding:0; box-sizing:border-box; }
 html, body { height:100%; background:#050508; color:#c8c8d4;
-  font: 13px/1.5 'Courier New', monospace; overflow:hidden; }
-
-#app { position:absolute; inset:0; display:grid;
-  grid-template-rows: auto 1fr auto; }
-
+  font:12px/1.5 'Courier New', monospace; overflow:hidden; }
+#app { display:grid; grid-template-rows: auto 1fr auto; height:100%; }
 #header { padding:8px 12px; background:#08080c;
-  border-bottom:1px solid #14141c;
-  display:flex; gap:8px; align-items:center;
-  font-size:10px; letter-spacing:1.2px; flex-wrap:wrap; }
+  border-bottom:1px solid #14141c; font-size:10px;
+  letter-spacing:1.2px; display:flex; gap:8px; }
 #header .core { color:#e8c39e; font-weight:bold; }
-#header .tok  { color:#4dd0c7; font-size:9px; }
-#header .st   { color:#8888a0; margin-left:auto; }
-
-#main { position:relative; overflow:hidden; }
-
-#canvas { position:absolute; inset:0; width:100%; height:100%; display:block;
-  image-rendering:pixelated; z-index:1; }
-
-#overlay { position:absolute; inset:0; z-index:2;
-  padding:10px; overflow-y:auto;
-  pointer-events:none; }
-
-#reveal {
-  position:absolute; left:50%; top:44%; transform:translate(-50%,-50%);
-  max-width:88%; text-align:center;
-  white-space:pre-wrap; font-size:15px; line-height:1.8;
-  color:#d8d8e0;
-  text-shadow:0 0 20px #050508, 0 0 40px #050508, 0 0 60px #050508;
-  pointer-events:none;
-  z-index: 3; }
-
-#inv { position:absolute; top:8px; right:12px;
-  font-size:13px; letter-spacing:4px; color:#e8c39e;
-  opacity:0.85;
-  z-index: 3; }
-
-#panel { position:absolute; left:10px; top:8px;
-  display:grid; grid-template-columns:auto auto; gap:2px 10px;
-  font-size:9px; color:#44445a; pointer-events:none;
-  z-index: 3; }
-
-#audit-block { position:absolute; left:10px; right:10px; top:50%;
-  transform:translateY(-50%);
-  border:1px solid #1c1c26; background:rgba(8,8,12,0.92);
-  padding:14px; z-index:3; display:none;
-  pointer-events:auto; }
-#audit-block.on { display:block; }
-#audit-block h2 { font-size:10px; color:#4dd0c7;
-  font-weight:normal; letter-spacing:1.6px;
-  text-transform:uppercase; margin-bottom:8px; }
-#audit-block .row { display:flex; justify-content:space-between;
-  padding:4px 0; font-size:11px;
-  border-bottom:1px solid #14141c; }
-#audit-block .row:last-child { border-bottom:none; }
-#audit-block .k { color:#4dd0c7; }
-#audit-block .v { color:#c8c8d4; }
-
+#header .tok { color:#4dd0c7; font-size:9px; }
+#header .st { color:#8888a0; margin-left:auto; }
+#main { position:relative; overflow:auto; padding:12px; }
+#vars { font-size:11px; }
+#vars .row { display:flex; justify-content:space-between;
+  padding:3px 0; border-bottom:1px solid #14141c; }
+#vars .name { color:#4dd0c7; }
+#vars .val { color:#c8c8d4; }
+#vars .ratio { color:#e8c39e; font-size:10px; }
 #footer { padding:8px 12px; background:#08080c;
-  border-top:1px solid #14141c;
-  display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
-#footer button { background:#0e0e14; border:1px solid #1c1c26;
-  color:#8888a0; padding:8px 10px;
-  font:9px 'Courier New', monospace;
-  letter-spacing:1.2px; cursor:pointer;
-  text-transform:uppercase; }
-#footer button:hover { border-color:#4dd0c7; color:#4dd0c7; }
-#footer button.on { border-color:#4dd0c7; color:#4dd0c7; }
-#footer button:disabled { opacity:0.3; }
-
-#boot { position:absolute; inset:0; z-index:10;
-  background:#050508; color:#44445a;
-  padding:20px; font-size:11px; }
-#boot .step { padding:3px 0; }
-#boot .ok { color:#2ed573; }
-#boot .err { color:#ff4757; }
+  border-top:1px solid #14141c; font-size:10px;
+  color:#8888a0; display:flex; gap:12px; }
+#footer .k { color:#4dd0c7; }
 </style>
 </head>
 <body>
 
 <div id="app">
-
   <div id="header">
-    <span class="core">𝕄_full</span>
-    <span class="tok">MONOMOD::MM5FFF681946L6G6A111</span>
-    <span class="st" id="h-status">loading…</span>
+    <span class="core">MONOMOD</span>
+    <span class="tok">MM5FFF681946L6G6A111</span>
+    <span class="st" id="status">loading pyodide…</span>
   </div>
-
   <div id="main">
-    <canvas id="canvas"></canvas>
-    <div id="inv">1 : 1 : 1</div>
-    <div id="panel"></div>
-    <div id="reveal"></div>
-
-    <div id="audit-block">
-      <h2>· аудит</h2>
-      <div id="audit-rows"></div>
-    </div>
-
-    <div id="boot">
-      <div class="step" id="b1">· загрузка pyodide…</div>
-      <div class="step" id="b2">· загрузка runtime…</div>
-      <div class="step" id="b3">· инициализация…</div>
-    </div>
+    <div id="center"></div>
+    <div id="vars"></div>
   </div>
-
   <div id="footer">
-    <button id="btn-run" disabled>▶ поток</button>
-    <button id="btn-stop" disabled>⏹ стоп</button>
-    <button id="btn-sound" disabled>🔊 звук: выкл</button>
-    <button id="btn-audit" disabled>аудит</button>
-    <button id="btn-audit-close" style="display:none">✕ закрыть</button>
+    <span>t: <span class="k" id="t">0</span></span>
+    <span>vars: <span class="k" id="nvars">0</span></span>
+    <span>mode: <span class="k" id="mode">mixed</span></span>
   </div>
-
 </div>
 
 <script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
 
+<script type="text/python" id="klepa-code">
+import math
+from js import document
+
+# ─── Token ─────────────────────────────────────────────────
+class Token:
+    RAW = "MONOMOD::MM5FFF681946L6G6A111"
+
+    @classmethod
+    def axes(cls):
+        raw = cls.RAW.replace("::", "")
+        return [ord(c) for c in raw]
+
+    @classmethod
+    def names(cls):
+        raw = cls.RAW.replace("::", "")
+        return [f"s{i}:{c}" for i, c in enumerate(raw)]
+
+    @classmethod
+    def center(cls):
+        a = cls.axes()
+        return sum(a) / len(a)
+
+
+# ─── Var ───────────────────────────────────────────────────
+class Var:
+    def __init__(self, name, lo, hi, center):
+        self.name = name
+        self.lo = lo
+        self.hi = hi
+        self.center = center
+        self.value = (lo + hi) / 2
+
+    def elasticity(self):
+        return self.hi - self.lo
+
+    def pull_to(self, target):
+        self.value = max(self.lo, min(self.hi, target))
+
+    def center_ratio(self):
+        return self.value / self.center if self.center != 0 else 0
+
+
+# ─── Field ─────────────────────────────────────────────────
+class Field:
+    def __init__(self, mode="mixed"):
+        self.mode = mode
+        self.center = Token.center()
+        self.vars = {}
+        self.t = 0
+
+        # стартовые 26 координат
+        for name, val in zip(Token.names(), Token.axes()):
+            self.vars[name] = Var(name, val * 0.95, val * 1.05, self.center)
+
+    def offset(self, t):
+        if self.mode == "stable":
+            return math.sin((t % 26) / 26 * 2 * math.pi) * 0.05
+        if self.mode == "drift":
+            return math.sin(t * 0.01) * 0.05
+        # mixed
+        return (
+            math.sin((t % 26) / 26 * 2 * math.pi) * 0.05
+            + math.sin(t * 0.001) * 0.005
+        )
+
+    def spawn(self):
+        # уровень 2: center-var
+        for name in list(self.vars):
+            r = self.vars[name].center_ratio()
+            if abs(r - 1.0) > 0.2:
+                new = f"c_{name}"
+                if new not in self.vars:
+                    self.vars[new] = Var(
+                        new, r * 0.9, r * 1.1, self.center
+                    )
+
+        # уровень 3: ratio-of-ratio
+        c_names = [n for n in self.vars if n.startswith("c_")]
+        for i, a in enumerate(c_names):
+            for b in c_names[i+1:]:
+                va, vb = self.vars[a], self.vars[b]
+                r = va.value / vb.value if vb.value != 0 else 0
+                if abs(r - 1.0) > 0.2:
+                    new = f"r_{a}_{b}"
+                    if new not in self.vars:
+                        self.vars[new] = Var(
+                            new, r * 0.9, r * 1.1, self.center
+                        )
+
+    def tick(self):
+        self.t += 1
+        off = self.offset(self.t)
+        for v in self.vars.values():
+            v.pull_to(v.value + off)
+        # spawn раз в 5 шагов (не каждый — иначе взрыв)
+        if self.t % 5 == 0:
+            self.spawn()
+
+    def snapshot(self):
+        return {
+            "t": self.t,
+            "center": self.center,
+            "vars": {n: v.value for n, v in self.vars.items()},
+            "center_ratios": {
+                n: v.center_ratio() for n, v in self.vars.items()
+            },
+            "n_vars": len(self.vars),
+        }
+
+
+# ─── Klepa ─────────────────────────────────────────────────
+class Klepa:
+    def __init__(self, mode="mixed"):
+        self.field = Field(mode=mode)
+
+    def tick(self):
+        self.field.tick()
+
+    def snapshot(self):
+        return self.field.snapshot()
+
+
+# ─── render ────────────────────────────────────────────────
+def render(snap):
+    doc = document
+    doc.getElementById("t").textContent = str(snap["t"])
+    doc.getElementById("nvars").textContent = str(snap["n_vars"])
+    doc.getElementById("mode").textContent = _mode
+
+    c = doc.getElementById("center")
+    c.innerHTML = f"<div class='row'><span class='name'>center</span><span class='val'>{snap['center']:.3f}</span></div>"
+
+    rows = []
+    items = list(snap["vars"].items())[:30]  # первые 30
+    for name, val in items:
+        r = snap["center_ratios"][name]
+        rows.append(
+            f"<div class='row'>"
+            f"<span class='name'>{name}</span>"
+            f"<span class='val'>{val:.3f}</span>"
+            f"<span class='ratio'>×{r:.3f}</span>"
+            f"</div>"
+        )
+    doc.getElementById("vars").innerHTML = "".join(rows)
+
+
+# ─── main loop ─────────────────────────────────────────────
+_mode = "mixed"
+k = Klepa(mode=_mode)
+
+async def loop():
+    import asyncio
+    from js import document
+    document.getElementById("status").textContent = "running"
+    while True:
+        k.tick()
+        render(k.snapshot())
+        await asyncio.sleep(0.1)
+</script>
+
 <script>
 "use strict";
 
-let pyodide = null;
-let soundOn = false;
-let audioCtx = null;
-let osc = null;
-let noiseGain = null;
-let gainMain = null;
-
-const bootEl = document.getElementById("boot");
-const statusEl = document.getElementById("h-status");
-const btnRun = document.getElementById("btn-run");
-const btnStop = document.getElementById("btn-stop");
-const btnSound = document.getElementById("btn-sound");
-const btnAudit = document.getElementById("btn-audit");
-const btnAuditClose = document.getElementById("btn-audit-close");
-const auditBlock = document.getElementById("audit-block");
-const auditRows = document.getElementById("audit-rows");
-
-function markStep(id, ok, text) {
-  const el = document.getElementById(id);
-  el.textContent = "· " + text;
-  el.className = "step " + (ok === true ? "ok" : ok === false ? "err" : "");
-}
-
-// ─── Python runtime ─────────────────────────────────────────
-const RUNTIME_PY = `
-import asyncio
-import math
-from collections import deque
-from js import document, window
-
-TOKEN = "MONOMOD::MM5FFF681946L6G6A111"
-DOORS = ["МОНОЛОГ", "DIMOD", "MULTIMOD", "ДИАЛОГ", "ПОЛИЛОГ"]
-INVARIANT = {"я": 1, "он": 1, "хаос": 1}
-
-# ─── K ─────────────────────────────────────────────────────
-class K:
-    def select(self, history, condition):
-        for event in reversed(history):
-            if condition(event):
-                return event.get("id")
-        return None
-    def value(self):
-        return {"anchor": None, "components": []}
-    def bind(self, *constants):
-        return {"constants": list(constants)}
-
-# ─── Auditor ───────────────────────────────────────────────
-class Auditor:
-    def run(self, request):
-        challenges = {
-            "k_touched": self._check_k_touched(request),
-            "policies_compatible": True,
-            "append_only": self._check_append_only(request),
-            "connections_intact": True,
-        }
-        verdict = "accept" if all(challenges.values()) else "reject"
-        failed = [k for k, v in challenges.items() if not v]
-        return {
-            "verdict": verdict,
-            "challenges": challenges,
-            "failed": failed,
-            "request_id": request.get("id"),
-            "mode": "audit",
-        }
-    def _check_k_touched(self, request):
-        target = str(request.get("target", ""))
-        change = str(request.get("change", ""))
-        if "genome.json" in target and "token" in change.lower():
-            return False
-        return True
-    def _check_append_only(self, request):
-        action = str(request.get("action", ""))
-        if action in ("overwrite", "delete"):
-            return False
-        return True
-
-# ─── Reveal ────────────────────────────────────────────────
-ATOMS = "·∙⋅°oO0#*+~-=<>/\\\\|_abcdefghijklmnopqrstuvwxyzΛΓΑΨΩ"
-SYLL  = ["ra", "ql", "mh", "wg", "KLP", "Λ6", "Γ6", "Α6", "Ψ3", "Ω4", "68", "194"]
-WORDS = ["узел", "связь", "форма", "начало", "пульс", "дом", "такт", "смысл",
-         "волна", "корень", "запрос", "матрица", "высота", "генерация", "ритм",
-         "Клепа", "кольцо", "мост", "модуль", "ядро"]
-PHRASES = [
-    "Клепа ведёт. Голос один.",
-    "Ядро держит границы. Слои дышат.",
-    "Мост не один. Их тринадцать.",
-    "Раскрытие растёт из центра.",
-    "Центр — M#. Второй центр — Клепа.",
-    "68 узлов. 194 связи. Один путь.",
-    "Λ держит. Γ ведёт. Α дышит.",
-]
-
-class Reveal:
-    def __init__(self):
-        self.last_text = ""
-        self.last_level = 0.2
-    def compute_level(self, v, t):
-        # уровень зависит от density, novelty, времени
-        base = 0.2
-        base += v["density"] * 0.3
-        base += v["novelty"] * 0.3
-        base += (t % 1000) / 1000 * 0.2
-        return max(0.2, min(0.9, base))
-    def generate(self, v, t):
-        level = self.compute_level(v, t)
-        # детерминированно от t
-        seed = int(t * 1000) % 100000
-        lines = []
-        if level < 0.30:
-            row = ""
-            for i in range(36):
-                row += ATOMS[(seed + i * 7) % len(ATOMS)]
-            lines.append(row)
-        elif level < 0.45:
-            words = []
-            for i in range(10):
-                words.append(SYLL[(seed + i * 3) % len(SYLL)])
-            lines.append(" ".join(words))
-        elif level < 0.60:
-            words = []
-            for i in range(8):
-                words.append(WORDS[(seed + i * 5) % len(WORDS)])
-            lines.append(" · ".join(words))
-        elif level < 0.75:
-            for i in range(3):
-                lines.append(PHRASES[(seed + i * 2) % len(PHRASES)])
-        else:
-            for i in range(4):
-                lines.append(PHRASES[(seed + i) % len(PHRASES)])
-            lines.append("")
-            lines.append("Раскрытие: " + format(level, ".2f"))
-        self.last_text = "\\n".join(lines)
-        self.last_level = level
-        return self.last_text
-
-# ─── state ─────────────────────────────────────────────────
-class State:
-    def __init__(self):
-        self.t = 0
-        self.v = {
-            "density": 0.3, "coherence": 0.5,
-            "rhythm": 0.4, "depth": 0.2, "novelty": 0.1,
-        }
-    def tick(self):
-        self.t += 1
-        t = self.t
-        self.v["density"]   = 0.5 + 0.5 * math.sin(t * 0.03)
-        self.v["coherence"] = 0.5 + 0.5 * math.sin(t * 0.017 + 1.1)
-        self.v["rhythm"]    = 0.5 + 0.5 * math.sin(t * 0.011 + 2.2)
-        self.v["depth"]     = 0.5 + 0.5 * math.sin(t * 0.007 + 3.3)
-        self.v["novelty"]   = 0.5 + 0.5 * math.sin(t * 0.023 + 4.4)
-
-# ─── глобальные ────────────────────────────────────────────
-history = deque(maxlen=1000)
-history.append({"id": "e1", "type": "principle", "text": "P1"})
-history.append({"id": "e2", "type": "deepening", "text": "R1"})
-history.append({"id": "e3", "type": "principle", "text": "P2"})
-
-k = K()
-auditor = Auditor()
-reveal = Reveal()
-state = State()
-
-streaming = False
-show_audit = False
-
-# ─── canvas CA ─────────────────────────────────────────────
-GW, GH = 64, 64   # как в v10.3
-grid = [0.0] * (GW * GH)
-
-def init_grid():
-    import random
-    random.seed(42)
-    for i in range(len(grid)):
-        grid[i] = 0.5 + random.random() * 0.5 if random.random() < 0.15 else 0.0
-
-init_grid()
-
-def ca_step():
-    global grid
-    new = [0.0] * (GW * GH)
-    for y in range(GH):
-        for x in range(GW):
-            i = y * GW + x
-            s = 0.0
-            alive = 0
-            for dy in (-1, 0, 1):
-                for dx in (-1, 0, 1):
-                    if dx == 0 and dy == 0:
-                        continue
-                    nx = (x + dx) % GW
-                    ny = (y + dy) % GH
-                    ni = ny * GW + nx
-                    s += grid[ni]
-                    if grid[ni] > 0.3:
-                        alive += 1
-            cur = grid[i]
-            if cur > 0.3:
-                if alive in (2, 3):
-                    v = cur * 0.95 + 0.05 * (s / 8)
-                elif alive in (1, 4):
-                    v = cur * 0.7
-                else:
-                    v = cur * 0.4
-            else:
-                v = 0.6 + 0.4 * (s / 8) if alive == 3 else cur * 0.85
-            new[i] = max(0.0, min(1.0, v))
-    grid = new
-
-# ─── render panel ──────────────────────────────────────────
-def render_panel():
-    parts = []
-    for name in ("density", "coherence", "rhythm", "depth", "novelty"):
-        parts.append(
-            '<div class="k">' + name + '</div><div class="v">'
-            + format(state.v[name], ".3f") + '</div>'
-        )
-    return "".join(parts)
-
-def render_audit():
-    r = auditor.run({
-        "id": "demo",
-        "target": "genome.json",
-        "change": "change token value",
-    })
-    rows = []
-    rows.append('<div class="row"><span class="k">verdict</span><span class="v">' + r["verdict"] + '</span></div>')
-    rows.append('<div class="row"><span class="k">failed</span><span class="v">' + (", ".join(r["failed"]) or "—") + '</span></div>')
-    rows.append('<div class="row"><span class="k">request</span><span class="v">' + str(r["request_id"]) + '</span></div>')
-    rows.append('<div class="row"><span class="k">mode</span><span class="v">' + r["mode"] + '</span></div>')
-    return "".join(rows)
-
-# ─── API для JS ────────────────────────────────────────────
-def start_stream():
-    global streaming, show_audit
-    streaming = True
-    show_audit = False
-    asyncio.ensure_future(stream_loop())
-
-def stop_stream():
-    global streaming
-    streaming = False
-
-def run_audit():
-    global show_audit, streaming
-    show_audit = True
-    # покажем сразу
-    doc = document
-    block = doc.getElementById("audit-block")
-    rows = doc.getElementById("audit-rows")
-    rows.innerHTML = render_audit()
-    block.classList.add("on")
-
-def close_audit():
-    global show_audit
-    show_audit = False
-    doc = document
-    block = doc.getElementById("audit-block")
-    block.classList.remove("on")
-
-async def stream_loop():
-    doc = document
-    panel = doc.getElementById("panel")
-    reveal_el = doc.getElementById("reveal")
-    canvas = doc.getElementById("canvas")
-    ctx = canvas.getContext("2d")
-    W = canvas.width
-    H = canvas.height
-    cw = W / GW
-    ch = H / GH
-
-    while streaming:
-        state.tick()
-        ca_step()
-        ca_step()
-
-        # reveal
-        text = reveal.generate(state.v, state.t)
-
-        # panel
-        panel.innerHTML = render_panel()
-
-        # reveal text
-        reveal_el.textContent = text
-
-        # canvas
-        ctx.fillStyle = "#050508"
-        ctx.fillRect(0, 0, W, H)
-        hue_base = (state.v["depth"] * 180 + 30) % 360
-        for y in range(GH):
-            for x in range(GW):
-                vv = grid[y * GW + x]
-                if vv < 0.05:
-                    continue
-                hue = (hue_base + vv * 40) % 360
-                light = 25 + vv * 55
-                ctx.fillStyle = "hsla(" + str(int(hue)) + ",65%," + str(int(light)) + "%," + str(vv) + ")"
-                ctx.fillRect(x * cw, y * ch, cw, ch)
-        # центр
-        ctx.fillStyle = "#e8c39e"
-        ctx.beginPath()
-        ctx.arc(W / 2, H / 2, 3 + state.v["depth"] * 3, 0, math.pi * 2 if False else 6.28318)
-        ctx.fill()
-
-        # обновление звука
-        update_sound(state.v)
-
-        # синхронизация с браузером
-        await asyncio.sleep(0.12)
-
-def update_sound(v):
-    try:
-        win = window
-        fn = win.polilog_update_sound
-        if fn:
-            fn(float(v["depth"]), float(v["density"]), float(v["novelty"]))
-    except Exception:
-        pass
-`;
-
-// ─── JS: canvas size ───────────────────────────────────────
-function sizeCanvas() {
-  const c = document.getElementById("canvas");
-  c.width = c.clientWidth;
-  c.height = c.clientHeight;
-}
-window.addEventListener("resize", sizeCanvas);
-
-// ─── JS: sound bridge для Python ───────────────────────────
-window.polilog_update_sound = function (depth, density, novelty) {
-  if (!soundOn || !audioCtx) return;
-  if (osc) osc.frequency.value = 110 + depth * 80;
-  if (gainMain) gainMain.gain.value = 0.06 + density * 0.12;
-  if (noiseGain) noiseGain.gain.value = 0.005 + novelty * 0.04;
-};
-
-function startSound() {
-  try {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-
-    osc = audioCtx.createOscillator();
-    osc.type = "sine";
-    osc.frequency.value = 110;
-
-    const bufSize = 2 * audioCtx.sampleRate;
-    const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
-    const data = buf.getChannelData(0);
-    for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
-
-    const noise = audioCtx.createBufferSource();
-    noise.buffer = buf;
-    noise.loop = true;
-
-    noiseGain = audioCtx.createGain();
-    noiseGain.gain.value = 0.01;
-
-    gainMain = audioCtx.createGain();
-    gainMain.gain.value = 0.08;
-
-    osc.connect(gainMain);
-    noise.connect(noiseGain);
-    noiseGain.connect(gainMain);
-    gainMain.connect(audioCtx.destination);
-
-    osc.start();
-    noise.start();
-    soundOn = true;
-    btnSound.textContent = "🔊 звук: вкл";
-  } catch (e) {
-    console.warn("audio failed:", e);
-  }
-}
-
-function stopSound() {
-  try {
-    if (osc) { osc.stop(); osc.disconnect(); osc = null; }
-    if (gainMain) { gainMain.disconnect(); gainMain = null; }
-    if (noiseGain) { noiseGain.disconnect(); noiseGain = null; }
-    if (audioCtx) { audioCtx.close(); audioCtx = null; }
-  } catch (e) {}
-  soundOn = false;
-  btnSound.textContent = "🔊 звук: выкл";
-}
-
-// ─── init ──────────────────────────────────────────────────
 async function init() {
-  try {
-    sizeCanvas();
-
-    markStep("b1", null, "загрузка pyodide 0.26.4…");
-    statusEl.textContent = "loading pyodide…";
-    pyodide = await loadPyodide({
-      indexURL: "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/"
-    });
-    markStep("b1", true, "pyodide загружен");
-
-    markStep("b2", null, "загрузка runtime…");
-    await pyodide.runPythonAsync(RUNTIME_PY);
-    markStep("b2", true, "runtime готов");
-
-    markStep("b3", null, "инициализация…");
-    await pyodide.runPythonAsync(`
-import asyncio
-from js import document
-async def first():
-    out = document.getElementById("boot")
-    out.style.display = "none"
-    panel = document.getElementById("panel")
-    panel.innerHTML = render_panel()
-    # первый кадр
-    doc = document
-    canvas = doc.getElementById("canvas")
-    ctx = canvas.getContext("2d")
-    canvas.width = canvas.clientWidth
-    canvas.height = canvas.clientHeight
-    # стартуем поток сразу
-    start_stream()
-asyncio.ensure_future(first())
-    `);
-    markStep("b3", true, "готово");
-
-    statusEl.textContent = "streaming…";
-    bootEl.style.display = "none";
-
-    btnRun.disabled = false;
-    btnStop.disabled = false;
-    btnSound.disabled = false;
-    btnAudit.disabled = false;
-
-  } catch (e) {
-    console.error(e);
-    markStep("b1", false, "ошибка: " + e.message);
-    statusEl.textContent = "error";
-  }
+  const pyodide = await loadPyodide({
+    indexURL: "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/"
+  });
+  const code = document.getElementById("klepa-code").textContent;
+  await pyodide.runPythonAsync(code);
+  await pyodide.runPythonAsync("import asyncio; asyncio.ensure_future(loop())");
 }
 
-// ─── кнопки ────────────────────────────────────────────────
-btnRun.addEventListener("click", async () => {
-  if (!pyodide) return;
-  await pyodide.runPythonAsync("start_stream()");
-  statusEl.textContent = "streaming…";
-  btnRun.disabled = true;
+init().catch(e => {
+  document.getElementById("status").textContent = "error: " + e.message;
+  console.error(e);
 });
-
-btnStop.addEventListener("click", async () => {
-  if (!pyodide) return;
-  await pyodide.runPythonAsync("stop_stream()");
-  statusEl.textContent = "stopped";
-  btnRun.disabled = false;
-});
-
-btnSound.addEventListener("click", () => {
-  if (!soundOn) startSound();
-  else stopSound();
-});
-
-btnAudit.addEventListener("click", async () => {
-  if (!pyodide) return;
-  await pyodide.runPythonAsync("run_audit()");
-  btnAuditClose.style.display = "inline-block";
-});
-
-btnAuditClose.addEventListener("click", async () => {
-  if (!pyodide) return;
-  await pyodide.runPythonAsync("close_audit()");
-  btnAuditClose.style.display = "none";
-});
-
-init();
 </script>
 
 </body>
