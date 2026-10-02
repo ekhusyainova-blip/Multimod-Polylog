@@ -19,3 +19,7 @@ jobs:
         run: |
           cd kernel
           python tests/test_k_select.py
+      - name: Run Auditor tests
+        run: |
+          cd kernel
+          python tests/test_auditor.py
