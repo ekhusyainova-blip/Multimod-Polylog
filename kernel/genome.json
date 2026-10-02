@@ -59,8 +59,18 @@
     "H001": { "text": "K берёт точку из GIT, не создаёт", "status": "confirmed", "introduced_at": "2026-10-01", "layer": "0", "confirmed_at": "2026-10-02", "evidence": "tests/test_k_select.py: 4 passed" },
     "H002": { "text": "p1..p10 — 10 компонент ядра", "status": "open", "introduced_at": "2026-10-01", "layer": "0" },
     "H003": { "text": "M# = хэш-маркер ядра", "status": "open", "introduced_at": "2026-10-01", "layer": "0" },
-    "H004": { "text": "Auditor.run возвращает verdict по 4 вызовам", "status": "confirmed", "introduced_at": "2026-10-02", "layer": "1", "confirmed_at": "2026-10-02", "evidence": "tests/test_auditor.py: 5 passed" },
-    "H005": { "text": "Гибрид: local=audit, peer/cell=dialog", "status": "partial", "introduced_at": "2026-10-02", "layer": "1", "note": "local=audit confirmed (5 tests). peer/cell=dialog — not implemented yet." }
+    "H004": { "text": "old = текущая голова (индуктивно)", "status": "open", "introduced_at": "2026-10-01", "layer": "1" },
+    "H005": { "text": "C = old ⊕ new, родители сохраняются", "status": "open", "introduced_at": "2026-10-01", "layer": "1" },
+    "H006": { "text": "Гибрид: local=audit, peer/cell=dialog", "status": "partial", "introduced_at": "2026-10-01", "layer": "1", "note": "local=audit confirmed (5 tests in test_auditor.py). peer/cell=dialog — not implemented yet.", "confirmed_local_at": "2026-10-02" },
+    "H007": { "text": "Инициатор peer = сторона с update_request", "status": "open", "introduced_at": "2026-10-01", "layer": "2" },
+    "H008": { "text": "Таймаут peer = двойной (10с challenge / 60с диалог)", "status": "open", "introduced_at": "2026-10-01", "layer": "2" },
+    "H009": { "text": "compatible(K) = конъюнкция 5 проверок", "status": "open", "introduced_at": "2026-10-01", "layer": "2" },
+    "H010": { "text": "Итерация = полный цикл 4 вызовов", "status": "open", "introduced_at": "2026-10-01", "layer": "2" },
+    "H011": { "text": "--daemon = fork/detach (не реализовано в v0.5)", "status": "open", "introduced_at": "2026-10-01", "layer": "2" },
+    "H012": { "text": "--test-iterations принимает только > 0", "status": "open", "introduced_at": "2026-10-01", "layer": "2" },
+    "H013": { "text": "check_provenance по явному classifies", "status": "open", "introduced_at": "2026-10-01", "layer": "2" },
+    "H014": { "text": "Auditor.run возвращает verdict по 4 вызовам", "status": "confirmed", "introduced_at": "2026-10-02", "layer": "1", "confirmed_at": "2026-10-02", "evidence": "tests/test_auditor.py: 5 passed" },
+    "H015": { "text": "challenges = dict (не list) — имена вызовов видны в результате", "status": "confirmed", "introduced_at": "2026-10-02", "layer": "1", "confirmed_at": "2026-10-02", "evidence": "tests/test_auditor.py: test_auditor_has_four_challenges passed" }
   },
 
   "notes": {
