@@ -12,7 +12,7 @@ html, body { height:100%; background:#050508; color:#c8c8d4;
   font: 14px/1.4 'Courier New', monospace; overflow:hidden; }
 
 #app { position:absolute; inset:0; display:grid;
-  grid-template-rows: auto 1fr auto; }
+  grid-template-rows: autolet 1fr auto; }
 
 #header { padding:10px 14px; background:#08080c;
   border-bottom:1px solid #14141c;
@@ -26,7 +26,7 @@ html, body { height:100%; background:#050508; color:#c8c8d4;
 #main { position:relative; overflow:hidden; }
 
 #canvas { position:absolute; inset:0; width:100%; height:100%;
-  display:block; image-rendering:pixelated; }
+  display:block; }
 
 #doors { position:absolute; top:10px; left:10px; right:10px;
   display:flex; gap:6px; flex-wrap:wrap; z-index:3; }
@@ -50,7 +50,7 @@ html, body { height:100%; background:#050508; color:#c8c8d4;
   margin-bottom:4px; }
 #stress-bar { height:6px; background:#14141c; position:relative; }
 #stress-fill { position:absolute; left:0; top:0; bottom:0;
-  width:0; background:#ff6b9d; transition:width .2s; }
+  width:0; background:#ff6b9d; transition:width .15s; }
 
 #footer { padding:10px 14px; background:#08080c;
   border-top:1px solid #14141c;
@@ -81,11 +81,8 @@ html, body { height:100%; background:#050508; color:#c8c8d4;
 
   <div id="main">
     <canvas id="canvas"></canvas>
-
     <div id="doors"></div>
-
     <div id="invariant">1 : 1 : 1</div>
-
     <div id="stress-wrap">
       <div id="stress-label">stress · хаос снизу</div>
       <div id="stress-bar"><div id="stress-fill"></div></div>
@@ -108,24 +105,24 @@ const WS_URL = (location.protocol === "https:" ? "wss://" : "ws://")
 
 let ws = null;
 let lastState = null;
-let canvas, ctx, W, H, cw, ch;
-let doorsEl, statusEl, fpsEl, stressFill;
+let smoothed = null;
+let canvas, ctx, W, H;
+let doorsEl, statusEl, fpsEl, stressFill, hStatus;
 
-let audioCtx = null;
+ audioCtx = null;
 let osc = null;
 let noiseSource = null;
+let noiseGain = null;
 let gainMain = null;
 let soundOn = false;
 
-// fps measure
-let frameTimes = [];
 let measuredFps = 60;
-
-// реконнект
 let reconnectDelay = 1000;
 let reconnectTimer = null;
 
-// ─── инициализация ────────────────────────────────────────────
+let frameCount = 0;
+
+// ─── boot ─────────────────────────────────────────────────────
 function boot() {
   canvas = document.getElementById("canvas");
   ctx = canvas.getContext("2d");
@@ -133,6 +130,7 @@ function boot() {
   statusEl = document.getElementById("status");
   fpsEl = document.getElementById("h-fps");
   stressFill = document.getElementById("stress-fill");
+  hStatus = document.getElementById("h-status");
 
   resize();
   window.addEventListener("resize", resize);
@@ -151,7 +149,6 @@ function boot() {
 function resize() {
   W = canvas.width = canvas.clientWidth;
   H = canvas.height = canvas.clientHeight;
-  cw = W / 64; ch = H / 64;
 }
 
 // ─── WebSocket ────────────────────────────────────────────────
@@ -162,25 +159,26 @@ function connect() {
   try {
     ws = new WebSocket(WS_URL);
   } catch (e) {
-    setStatus("bad url: " + e.message, "off");
+    setStatus("bad url", "off");
     scheduleReconnect();
     return;
   }
 
   ws.onopen = () => {
     setStatus("connected", "on");
+    hStatus.textContent = "stream: on";
     reconnectDelay = 1000;
-    ws.send(JSON.stringify({ type: "client_capability", fps: measuredFps }));
   };
 
   ws.onmessage = (ev) => {
     try {
       lastState = JSON.parse(ev.data);
-    } catch (e) { /* ignore */ }
+    } catch (e) {}
   };
 
   ws.onclose = () => {
     setStatus("disconnected", "off");
+    hStatus.textContent = "stream: off";
     scheduleReconnect();
   };
 
@@ -201,27 +199,23 @@ function setStatus(text, cls) {
   statusEl.className = cls;
 }
 
-// ─── fps measure ──────────────────────────────────────────────
+// ─── fps ──────────────────────────────────────────────────────
 function measureFps() {
   let frames = 0;
   let last = performance.now();
-
   function tick(now) {
     frames++;
     if (now - last >= 1000) {
       measuredFps = Math.round(frames * 1000 / (now - last));
       frames = 0; last = now;
       fpsEl.textContent = measuredFps + " Hz";
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: "client_capability", fps: measuredFps }));
-      }
     }
     requestAnimationFrame(tick);
   }
   requestAnimationFrame(tick);
 }
 
-// ─── 5 дверей ─────────────────────────────────────────────────
+// ─── двери ────────────────────────────────────────────────────
 let doorsBuilt = false;
 function buildDoors() {
   if (doorsBuilt || !lastState) return;
@@ -248,51 +242,63 @@ function markDoor(door) {
 }
 
 // ─── render ───────────────────────────────────────────────────
-let t = 0;
-
 function renderLoop() {
-  t++;
+  frameCount++;
+
   if (lastState) {
     buildDoors();
     markDoor(lastState.door);
-    drawState(lastState);
-    stressFill.style.width = (lastState.stress * 100) + "%";
+
+    // интерполяция: сглаживаем между состояниями
+    if (!smoothed) {
+      smoothed = JSON.parse(JSON.stringify(lastState));
+    } else {
+      const alpha = 0.08;
+      for (const k of ["density","coherence","rhythm","depth","novelty"]) {
+        smoothed.v[k] += (lastState.v[k] - smoothed.v[k]) * alpha;
+      }
+      smoothed.stress += (lastState.stress - smoothed.stress) * alpha;
+      smoothed.door = lastState.door;
+    }
+
+    drawState(smoothed, frameCount);
+    stressFill.style.width = (smoothed.stress * 100) + "%";
   } else {
     drawIdle();
   }
+
   requestAnimationFrame(renderLoop);
 }
 
-function drawState(s) {
+function drawState(s, t) {
   const v = s.v;
   ctx.fillStyle = "#050508";
   ctx.fillRect(0, 0, W, H);
 
-  // цвет по depth
   const hue = (v.depth * 180 + 30) % 360;
 
   // мягкий градиент
   const g = ctx.createRadialGradient(W/2, H/2, 20, W/2, H/2, Math.min(W,H)/2);
-  g.addColorStop(0, `hsla(${hue}, 60%, 40%, ${0.4 + v.density * 0.4})`);
+  g.addColorStop(0, `hsla(${hue}, 60%, 40%, ${0.3 + v.density * 0.35})`);
   g.addColorStop(1, "hsla(240, 20%, 5%, 0)");
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, W, H);
 
-  // точки по rhythm
+  // орбитальные точки
   const n = 24;
   for (let i = 0; i < n; i++) {
-    const a = (i / n) * Math.PI * 2 + s.t * 0.01;
-    const r = 40 + v.rhythm * 120 + Math.sin(s.t * 0.03 + i) * 15;
+    const a = (i / n) * Math.PI * 2 + t * 0.002; // ← замедлено
+    const r = 60 + v.rhythm * 100 + Math.sin(t * 0.008 + i) * 12; // ← замедлено
     const x = W/2 + Math.cos(a) * r;
     const y = H/2 + Math.sin(a) * r;
-    const rad = 1.5 + v.coherence * 3;
+    const rad = 1.5 + v.coherence * 2.5;
     ctx.fillStyle = `hsla(${(hue + i * 4) % 360}, 70%, 60%, ${0.5 + v.novelty * 0.4})`;
     ctx.beginPath();
     ctx.arc(x, y, rad, 0, Math.PI * 2);
     ctx.fill();
   }
 
-  // центральное ядро
+  // центр
   ctx.fillStyle = "#e8c39e";
   ctx.beginPath();
   ctx.arc(W/2, H/2, 3 + v.depth * 4, 0, Math.PI * 2);
@@ -301,7 +307,7 @@ function drawState(s) {
 
 function drawIdle() {
   ctx.fillStyle = "#050508";
-  ctx.fillRect(0, 0, W, H);
+  ctx.fillRect(0,)` 0, W, H);
   ctx.fillStyle = "#1c1c26";
   ctx.beginPath();
   ctx.arc(W/2, H/2, 3, 0, Math.PI * 2);
@@ -310,23 +316,19 @@ function drawIdle() {
 
 // ─── звук ─────────────────────────────────────────────────────
 function toggleSound() {
-  if (!soundOn) {
-    startSound();
-  } else {
-    stopSound();
-  }
+  if (!soundOn) startSound();
+  else stopSound();
 }
 
 function startSound() {
   try {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === "suspended") audioCtx.resume();
 
-    // 110 Гц — базовый гул
     osc = audioCtx.createOscillator();
     osc.type = "sine";
     osc.frequency.value = 110;
 
-    // белый шум — хаос
     const bufSize = 2 * audioCtx.sampleRate;
     const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
     const data = buf.getChannelData(0);
@@ -335,7 +337,7 @@ function startSound() {
     noiseSource.buffer = buf;
     noiseSource.loop = true;
 
-    const noiseGain = audioCtx.createGain();
+    noiseGain = audioCtx.createGain();
     noiseGain.gain.value = 0.02;
 
     gainMain = audioCtx.createGain();
@@ -353,11 +355,10 @@ function startSound() {
 
     // обновление звука по состоянию
     setInterval(() => {
-      if (!soundOn || !lastState || !audioCtx) return;
-      const s = lastState;
-      osc.frequency.value = 110 + s.v.depth * 80;
-      gainMain.gain.value = 0.1 + s.v.density * 0.15;
-      noiseGain.gain.value = 0.005 + s.stress * 0.06;
+      if (!soundOn || !smoothed || !audioCtx) return;
+      osc.frequency.value = 110 + smoothed.v.depth * 80;
+      gainMain.gain.value = 0.1 + smoothed.v.density * 0.15;
+      noiseGain.gain.value = 0.005 + smoothed.stress * 0.06;
     }, 100);
   } catch (e) {
     console.warn("audio failed:", e);
@@ -375,7 +376,6 @@ function stopSound() {
   document.getElementById("btn-sound").textContent = "🔊 звук: выкл";
 }
 
-// ─── start ────────────────────────────────────────────────────
 boot();
 </script>
 
