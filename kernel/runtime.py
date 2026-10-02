@@ -162,9 +162,70 @@ class K:
 
 
 class Auditor:
-    """ACCEPTED A5: local = audit."""
-    def run(self, request):
-        raise NotImplementedError("Auditor.run — not yet implemented")
+    """
+    ACCEPTED A5: local = audit (симуляция, один процесс, две роли).
+    ACCEPTED A10: итерация = полный цикл 4 вызовов.
+    """
+
+    def run(self, request: dict) -> dict:
+        """
+        Local-аудит: проверяет update_request по 4 вызовам.
+        Роли old и new — внутри одного процесса.
+
+        H006: гибрид (local=audit).
+        """
+        challenges = [
+            self._check_k_touched(request),
+            self._check_policies_compatible(request),
+            self._check_append_only(request),
+            self._check_connections_intact(request),
+        ]
+
+        verdict = "accept" if all(challenges) else "reject"
+
+        return {
+            "verdict": verdict,
+            "challenges": challenges,
+            "request_id": request.get("id"),
+            "mode": "audit",
+        }
+
+    def _check_k_touched(self, request: dict) -> bool:
+        """
+        Проверяет, затрагивает ли request K (токен, границы, 1:1:1).
+        Возвращает True если безопасно, False если затрагивает.
+        """
+        target = str(request.get("target", ""))
+        change = str(request.get("change", ""))
+        # токен в genome — запрещено
+        if "genome.json" in target and "token" in change.lower():
+            return False
+        return True
+
+    def _check_policies_compatible(self, request: dict) -> bool:
+        """
+        H009: совместимость политик.
+        HYPOTHESIS: 5 проверок не определены формально.
+        Сейчас — заглушка: всегда True.
+        """
+        return True
+
+    def _check_append_only(self, request: dict) -> bool:
+        """
+        Проверяет, что request не нарушает append-only.
+        """
+        action = str(request.get("action", ""))
+        if action in ("overwrite", "delete"):
+            return False
+        return True
+
+    def _check_connections_intact(self, request: dict) -> bool:
+        """
+        Проверяет, что request не рвёт активные соединения.
+        HYPOTHESIS: проверка соединений не определена.
+        Сейчас — заглушка: всегда True.
+        """
+        return True
 
 
 class Dialog:
