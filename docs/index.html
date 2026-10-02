@@ -8,7 +8,6 @@
 <meta name="apple-mobile-web-app-title" content="Polilog">
 <meta name="theme-color" content="#050508">
 <link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23050508'/><text x='50' y='65' font-size='60' text-anchor='middle' fill='%23e8c39e'>𝕄</text></svg>">
 <title>Multimod Polilog</title>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -18,66 +17,75 @@ html, body { height:100%; background:#050508; color:#c8c8d4;
 #app { position:absolute; inset:0; display:grid;
   grid-template-rows: auto 1fr auto; }
 
-#header { padding:10px 14px; background:#08080c;
+#header { padding:8px 12px; background:#08080c;
   border-bottom:1px solid #14141c;
-  display:flex; gap:10px; align-items:center;
-  font-size:10px; letter-spacing:1.4px;
-  flex-wrap:wrap; }
+  display:flex; gap:8px; align-items:center;
+  font-size:10px; letter-spacing:1.2px; flex-wrap:wrap; }
 #header .core { color:#e8c39e; font-weight:bold; }
 #header .tok  { color:#4dd0c7; font-size:9px; }
 #header .st   { color:#8888a0; margin-left:auto; }
 
-#main { position:relative; overflow-y:auto; padding:14px; }
+#main { position:relative; overflow:hidden; }
 
-#boot { color:#44445a; font-size:11px; padding:20px; }
-#boot .step { padding:3px 0; }
-#boot .ok { color:#2ed573; }
-#boot .err { color:#ff4757; }
+#canvas { position:absolute; inset:0; width:100%; height:100%; display:block;
+  image-rendering:pixelated; z-index:1; }
 
-#output {
-  white-space:pre-wrap;
-  font-size:13px; line-height:1.7;
+#overlay { position:absolute; inset:0; z-index:2;
+  padding:10px; overflow-y:auto;
+  pointer-events:none; }
+
+#reveal {
+  position:absolute; left:50%; top:44%; transform:translate(-50%,-50%);
+  max-width:88%; text-align:center;
+  white-space:pre-wrap; font-size:15px; line-height:1.8;
   color:#d8d8e0;
-}
+  text-shadow:0 0 20px #050508, 0 0 40px #050508, 0 0 60px #050508;
+  pointer-events:none; }
 
-.section {
-  border:1px solid #14141c;
-  background:#08080c;
-  padding:12px; margin-bottom:10px;
-}
-.section h2 {
-  font-size:10px; color:#4dd0c7;
+#inv { position:absolute; top:8px; right:12px;
+  font-size:13px; letter-spacing:4px; color:#e8c39e;
+  opacity:0.85; }
+
+#panel { position:absolute; left:10px; top:8px;
+  display:grid; grid-template-columns:auto auto; gap:2px 10px;
+  font-size:9px; color:#44445a; pointer-events:none; }
+#panel .k { color:#4dd0c7; text-transform:uppercase; letter-spacing:1.2px; }
+#panel .v { color:#c8c8d4; font-variant-numeric:tabular-nums; text-align:right; }
+
+#audit-block { position:absolute; left:10px; right:10px; top:50%;
+  transform:translateY(-50%);
+  border:1px solid #1c1c26; background:rgba(8,8,12,0.92);
+  padding:14px; z-index:3; display:none;
+  pointer-events:auto; }
+#audit-block.on { display:block; }
+#audit-block h2 { font-size:10px; color:#4dd0c7;
   font-weight:normal; letter-spacing:1.6px;
-  text-transform:uppercase; margin-bottom:8px;
-}
-.section .row {
-  display:flex; justify-content:space-between;
-  padding:3px 0; font-size:11px;
-  border-bottom:1px solid #14141c;
-}
-.section .row:last-child { border-bottom:none; }
-.section .k { color:#4dd0c7; }
-.section .v { color:#c8c8d4; }
+  text-transform:uppercase; margin-bottom:8px; }
+#audit-block .row { display:flex; justify-content:space-between;
+  padding:4px 0; font-size:11px;
+  border-bottom:1px solid #14141c; }
+#audit-block .row:last-child { border-bottom:none; }
+#audit-block .k { color:#4dd0c7; }
+#audit-block .v { color:#c8c8d4; }
 
-#footer { padding:10px 14px; background:#08080c;
+#footer { padding:8px 12px; background:#08080c;
   border-top:1px solid #14141c;
-  display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
-#footer button {
-  background:#0e0e14; border:1px solid #1c1c26;
-  color:#8888a0; padding:8px 12px;
+  display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+#footer button { background:#0e0e14; border:1px solid #1c1c26;
+  color:#8888a0; padding:8px 10px;
   font:9px 'Courier New', monospace;
   letter-spacing:1.2px; cursor:pointer;
   text-transform:uppercase; }
 #footer button:hover { border-color:#4dd0c7; color:#4dd0c7; }
 #footer button.on { border-color:#4dd0c7; color:#4dd0c7; }
-#footer button:disabled { opacity:0.3; cursor:wait; }
+#footer button:disabled { opacity:0.3; }
 
-.door-btn { display:inline-block; margin:2px 4px 2px 0;
-  background:#0e0e14; border:1px solid #1c1c26;
-  color:#8888a0; padding:6px 10px;
-  font:9px 'Courier New', monospace;
-  cursor:pointer; }
-.door-btn.on { border-color:#4dd0c7; color:#4dd0c7; }
+#boot { position:absolute; inset:0; z-index:10;
+  background:#050508; color:#44445a;
+  padding:20px; font-size:11px; }
+#boot .step { padding:3px 0; }
+#boot .ok { color:#2ed573; }
+#boot .err { color:#ff4757; }
 </style>
 </head>
 <body>
@@ -91,40 +99,54 @@ html, body { height:100%; background:#050508; color:#c8c8d4;
   </div>
 
   <div id="main">
+    <canvas id="canvas"></canvas>
+    <div id="inv">1 : 1 : 1</div>
+    <div id="panel"></div>
+    <div id="reveal"></div>
+
+    <div id="audit-block">
+      <h2>· аудит</h2>
+      <div id="audit-rows"></div>
+    </div>
+
     <div id="boot">
       <div class="step" id="b1">· загрузка pyodide…</div>
       <div class="step" id="b2">· загрузка runtime…</div>
       <div class="step" id="b3">· инициализация…</div>
     </div>
-    <div id="output" style="display:none"></div>
   </div>
 
   <div id="footer">
-    <button id="btn-run" disabled>▶ запустить поток</button>
-    <button id="btn-stop" disabled>⏹ остановить</button>
-    <button id="btn-doors" disabled>5 дверей</button>
+    <button id="btn-run" disabled>▶ поток</button>
+    <button id="btn-stop" disabled>⏹ стоп</button>
+    <button id="btn-sound" disabled>🔊 звук: выкл</button>
     <button id="btn-audit" disabled>аудит</button>
+    <button id="btn-audit-close" style="display:none">✕ закрыть</button>
   </div>
 
 </div>
 
-<!-- Pyodide 0.26.4 — стабильная версия для iOS Safari -->
 <script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
 
 <script>
 "use strict";
 
 let pyodide = null;
-let streaming = false;
-let streamTask = null;
+let soundOn = false;
+let audioCtx = null;
+let osc = null;
+let noiseGain = null;
+let gainMain = null;
 
-const boot = document.getElementById("boot");
-const output = document.getElementById("output");
+const bootEl = document.getElementById("boot");
 const statusEl = document.getElementById("h-status");
 const btnRun = document.getElementById("btn-run");
 const btnStop = document.getElementById("btn-stop");
-const btnDoors = document.getElementById("btn-doors");
+const btnSound = document.getElementById("btn-sound");
 const btnAudit = document.getElementById("btn-audit");
+const btnAuditClose = document.getElementById("btn-audit-close");
+const auditBlock = document.getElementById("audit-block");
+const auditRows = document.getElementById("audit-rows");
 
 function markStep(id, ok, text) {
   const el = document.getElementById(id);
@@ -132,16 +154,18 @@ function markStep(id, ok, text) {
   el.className = "step " + (ok === true ? "ok" : ok === false ? "err" : "");
 }
 
-// ─── runtime на Python (встроен) ─────────────────────────────
+// ─── Python runtime ─────────────────────────────────────────
 const RUNTIME_PY = `
 import asyncio
-from js import document
+import math
 from collections import deque
+from js import document, window
 
 TOKEN = "MONOMOD::MM5FFF681946L6G6A111"
 DOORS = ["МОНОЛОГ", "DIMOD", "MULTIMOD", "ДИАЛОГ", "ПОЛИЛОГ"]
 INVARIANT = {"я": 1, "он": 1, "хаос": 1}
 
+# ─── K ─────────────────────────────────────────────────────
 class K:
     def select(self, history, condition):
         for event in reversed(history):
@@ -153,6 +177,7 @@ class K:
     def bind(self, *constants):
         return {"constants": list(constants)}
 
+# ─── Auditor ───────────────────────────────────────────────
 class Auditor:
     def run(self, request):
         challenges = {
@@ -182,95 +207,319 @@ class Auditor:
             return False
         return True
 
-# история в памяти
-history = deque(maxlen=1000)
-k = K()
-auditor = Auditor()
+# ─── Reveal ────────────────────────────────────────────────
+ATOMS = "·∙⋅°oO0#*+~-=<>/\\\\|_abcdefghijklmnopqrstuvwxyzΛΓΑΨΩ"
+SYLL  = ["ra", "ql", "mh", "wg", "KLP", "Λ6", "Γ6", "Α6", "Ψ3", "Ω4", "68", "194"]
+WORDS = ["узел", "связь", "форма", "начало", "пульс", "дом", "такт", "смысл",
+         "волна", "корень", "запрос", "матрица", "высота", "генерация", "ритм",
+         "Клепа", "кольцо", "мост", "модуль", "ядро"]
+PHRASES = [
+    "Клепа ведёт. Голос один.",
+    "Ядро держит границы. Слои дышат.",
+    "Мост не один. Их тринадцать.",
+    "Раскрытие растёт из центра.",
+    "Центр — M#. Второй центр — Клепа.",
+    "68 узлов. 194 связи. Один путь.",
+    "Λ держит. Γ ведёт. Α дышит.",
+]
 
-# заполним историю для демо
+class Reveal:
+    def __init__(self):
+        self.last_text = ""
+        self.last_level = 0.2
+    def compute_level(self, v, t):
+        # уровень зависит от density, novelty, времени
+        base = 0.2
+        base += v["density"] * 0.3
+        base += v["novelty"] * 0.3
+        base += (t % 1000) / 1000 * 0.2
+        return max(0.2, min(0.9, base))
+    def generate(self, v, t):
+        level = self.compute_level(v, t)
+        # детерминированно от t
+        seed = int(t * 1000) % 100000
+        lines = []
+        if level < 0.30:
+            row = ""
+            for i in range(36):
+                row += ATOMS[(seed + i * 7) % len(ATOMS)]
+            lines.append(row)
+        elif level < 0.45:
+            words = []
+            for i in range(10):
+                words.append(SYLL[(seed + i * 3) % len(SYLL)])
+            lines.append(" ".join(words))
+        elif level < 0.60:
+            words = []
+            for i in range(8):
+                words.append(WORDS[(seed + i * 5) % len(WORDS)])
+            lines.append(" · ".join(words))
+        elif level < 0.75:
+            for i in range(3):
+                lines.append(PHRASES[(seed + i * 2) % len(PHRASES)])
+        else:
+            for i in range(4):
+                lines.append(PHRASES[(seed + i) % len(PHRASES)])
+            lines.append("")
+            lines.append("Раскрытие: " + format(level, ".2f"))
+        self.last_text = "\\n".join(lines)
+        self.last_level = level
+        return self.last_text
+
+# ─── state ─────────────────────────────────────────────────
+class State:
+    def __init__(self):
+        self.t = 0
+        self.v = {
+            "density": 0.3, "coherence": 0.5,
+            "rhythm": 0.4, "depth": 0.2, "novelty": 0.1,
+        }
+    def tick(self):
+        self.t += 1
+        t = self.t
+        self.v["density"]   = 0.5 + 0.5 * math.sin(t * 0.03)
+        self.v["coherence"] = 0.5 + 0.5 * math.sin(t * 0.017 + 1.1)
+        self.v["rhythm"]    = 0.5 + 0.5 * math.sin(t * 0.011 + 2.2)
+        self.v["depth"]     = 0.5 + 0.5 * math.sin(t * 0.007 + 3.3)
+        self.v["novelty"]   = 0.5 + 0.5 * math.sin(t * 0.023 + 4.4)
+
+# ─── глобальные ────────────────────────────────────────────
+history = deque(maxlen=1000)
 history.append({"id": "e1", "type": "principle", "text": "P1"})
 history.append({"id": "e2", "type": "deepening", "text": "R1"})
 history.append({"id": "e3", "type": "principle", "text": "P2"})
 
-def tick(t):
-    import math
-    return {
-        "t": t,
-        "density": 0.5 + 0.5 * math.sin(t * 0.03),
-        "coherence": 0.5 + 0.5 * math.sin(t * 0.017 + 1.1),
-        "rhythm": 0.5 + 0.5 * math.sin(t * 0.011 + 2.2),
-        "depth": 0.5 + 0.5 * math.sin(t * 0.007 + 3.3),
-        "novelty": 0.5 + 0.5 * math.sin(t * 0.023 + 4.4),
-    }
+k = K()
+auditor = Auditor()
+reveal = Reveal()
+state = State()
 
-def make_html(t, s):
-    v = s
-    k_id = k.select(history, lambda e: e.get("type") == "principle")
-    a_id = auditor.run({"id": "r" + str(t), "target": "runtime.py"})
-    
-    doors_html = " ".join(
-        '<span class="door-btn">' + d + '</span>' for d in DOORS
-    )
-    failed_str = ", ".join(a_id["failed"]) or "—"
-    
+streaming = False
+show_audit = False
+
+# ─── canvas CA ─────────────────────────────────────────────
+GW, GH = 32, 32   # меньше, чем 64 — для iPhone
+grid = [0.0] * (GW * GH)
+
+def init_grid():
+    import random
+    random.seed(42)
+    for i in range(len(grid)):
+        grid[i] = 0.5 + random.random() * 0.5 if random.random() < 0.15 else 0.0
+
+init_grid()
+
+def ca_step():
+    global grid
+    new = [0.0] * (GW * GH)
+    for y in range(GH):
+        for x in range(GW):
+            i = y * GW + x
+            s = 0.0
+            alive = 0
+            for dy in (-1, 0, 1):
+                for dx in (-1, 0, 1):
+                    if dx == 0 and dy == 0:
+                        continue
+                    nx = (x + dx) % GW
+                    ny = (y + dy) % GH
+                    ni = ny * GW + nx
+                    s += grid[ni]
+                    if grid[ni] > 0.3:
+                        alive += 1
+            cur = grid[i]
+            if cur > 0.3:
+                if alive in (2, 3):
+                    v = cur * 0.95 + 0.05 * (s / 8)
+                elif alive in (1, 4):
+                    v = cur * 0.7
+                else:
+                    v = cur * 0.4
+            else:
+                v = 0.6 + 0.4 * (s / 8) if alive == 3 else cur * 0.85
+            new[i] = max(0.0, min(1.0, v))
+    grid = new
+
+# ─── render panel ──────────────────────────────────────────
+def render_panel():
     parts = []
-    parts.append('<div class="section"><h2>· инвариант</h2>')
-    parts.append('<div class="row"><span class="k">1 : 1 : 1</span><span class="v">я · он · хаос</span></div>')
-    parts.append('<div class="row"><span class="k">токен</span><span class="v">' + TOKEN + '</span></div>')
-    parts.append('</div>')
-    
-    parts.append('<div class="section"><h2>· поток (t=' + str(t) + ')</h2>')
-    parts.append('<div class="row"><span class="k">density</span><span class="v">' + format(v["density"], ".3f") + '</span></div>')
-    parts.append('<div class="row"><span class="k">coherence</span><span class="v">' + format(v["coherence"], ".3f") + '</span></div>')
-    parts.append('<div class="row"><span class="k">rhythm</span><span class="v">' + format(v["rhythm"], ".3f") + '</span></div>')
-    parts.append('<div class="row"><span class="k">depth</span><span class="v">' + format(v["depth"], ".3f") + '</span></div>')
-    parts.append('<div class="row"><span class="k">novelty</span><span class="v">' + format(v["novelty"], ".3f") + '</span></div>')
-    parts.append('</div>')
-    
-    parts.append('<div class="section"><h2>· K.select</h2>')
-    parts.append('<div class="row"><span class="k">principle</span><span class="v">' + str(k_id) + '</span></div>')
-    parts.append('</div>')
-    
-    parts.append('<div class="section"><h2>· Auditor.run</h2>')
-    parts.append('<div class="row"><span class="k">verdict</span><span class="v">' + a_id["verdict"] + '</span></div>')
-    parts.append('<div class="row"><span class="k">failed</span><span class="v">' + failed_str + '</span></div>')
-    parts.append('</div>')
-    
-    parts.append('<div class="section"><h2>· 5 дверей</h2><div>' + doors_html + '</div></div>')
-    
+    for name in ("density", "coherence", "rhythm", "depth", "novelty"):
+        parts.append(
+            '<div class="k">' + name + '</div><div class="v">'
+            + format(state.v[name], ".3f") + '</div>'
+        )
     return "".join(parts)
 
-async def stream_loop():
-    out = document.getElementById("output")
-    t = 0
-    while streaming:
-        t += 1
-        s = tick(t)
-        html = make_html(t, s)
-        out.innerHTML = html
-        await asyncio.sleep(0.15)
+def render_audit():
+    r = auditor.run({
+        "id": "demo",
+        "target": "genome.json",
+        "change": "change token value",
+    })
+    rows = []
+    rows.append('<div class="row"><span class="k">verdict</span><span class="v">' + r["verdict"] + '</span></div>')
+    rows.append('<div class="row"><span class="k">failed</span><span class="v">' + (", ".join(r["failed"]) or "—") + '</span></div>')
+    rows.append('<div class="row"><span class="k">request</span><span class="v">' + str(r["request_id"]) + '</span></div>')
+    rows.append('<div class="row"><span class="k">mode</span><span class="v">' + r["mode"] + '</span></div>')
+    return "".join(rows)
 
+# ─── API для JS ────────────────────────────────────────────
 def start_stream():
-    global streaming
+    global streaming, show_audit
     streaming = True
+    show_audit = False
     asyncio.ensure_future(stream_loop())
 
 def stop_stream():
     global streaming
     streaming = False
 
-def run_audit_demo():
-    return auditor.run({
-        "id": "demo",
-        "target": "genome.json",
-        "change": "change token value",
-    })
+def run_audit():
+    global show_audit, streaming
+    show_audit = True
+    # покажем сразу
+    doc = document
+    block = doc.getElementById("audit-block")
+    rows = doc.getElementById("audit-rows")
+    rows.innerHTML = render_audit()
+    block.classList.add("on")
 
+def close_audit():
+    global show_audit
+    show_audit = False
+    doc = document
+    block = doc.getElementById("audit-block")
+    block.classList.remove("on")
+
+async def stream_loop():
+    doc = document
+    panel = doc.getElementById("panel")
+    reveal_el = doc.getElementById("reveal")
+    canvas = doc.getElementById("canvas")
+    ctx = canvas.getContext("2d")
+    W = canvas.width
+    H = canvas.height
+    cw = W / GW
+    ch = H / GH
+
+    while streaming:
+        state.tick()
+        ca_step()
+        ca_step()
+
+        # reveal
+        text = reveal.generate(state.v, state.t)
+
+        # panel
+        panel.innerHTML = render_panel()
+
+        # reveal text
+        reveal_el.textContent = text
+
+        # canvas
+        ctx.fillStyle = "#050508"
+        ctx.fillRect(0, 0, W, H)
+        hue_base = (state.v["depth"] * 180 + 30) % 360
+        for y in range(GH):
+            for x in range(GW):
+                vv = grid[y * GW + x]
+                if vv < 0.05:
+                    continue
+                hue = (hue_base + vv * 40) % 360
+                light = 25 + vv * 55
+                ctx.fillStyle = "hsla(" + str(int(hue)) + ",65%," + str(int(light)) + "%," + str(vv) + ")"
+                ctx.fillRect(x * cw, y * ch, cw, ch)
+        # центр
+        ctx.fillStyle = "#e8c39e"
+        ctx.beginPath()
+        ctx.arc(W / 2, H / 2, 3 + state.v["depth"] * 3, 0, math.pi * 2 if False else 6.28318)
+        ctx.fill()
+
+        # обновление звука
+        update_sound(state.v)
+
+        # синхронизация с браузером
+        await asyncio.sleep(0.12)
+
+def update_sound(v):
+    try:
+        win = window
+        fn = win.polilog_update_sound
+        if fn:
+            fn(float(v["depth"]), float(v["density"]), float(v["novelty"]))
+    except Exception:
+        pass
 `;
 
-// ─── инициализация ───────────────────────────────────────────
+// ─── JS: canvas size ───────────────────────────────────────
+function sizeCanvas() {
+  const c = document.getElementById("canvas");
+  c.width = c.clientWidth;
+  c.height = c.clientHeight;
+}
+window.addEventListener("resize", sizeCanvas);
+
+// ─── JS: sound bridge для Python ───────────────────────────
+window.polilog_update_sound = function (depth, density, novelty) {
+  if (!soundOn || !audioCtx) return;
+  if (osc) osc.frequency.value = 110 + depth * 80;
+  if (gainMain) gainMain.gain.value = 0.06 + density * 0.12;
+  if (noiseGain) noiseGain.gain.value = 0.005 + novelty * 0.04;
+};
+
+function startSound() {
+  try {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    osc = audioCtx.createOscillator();
+    osc.type = "sine";
+    osc.frequency.value = 110;
+
+    const bufSize = 2 * audioCtx.sampleRate;
+    const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+
+    const noise = audioCtx.createBufferSource();
+    noise.buffer = buf;
+    noise.loop = true;
+
+    noiseGain = audioCtx.createGain();
+    noiseGain.gain.value = 0.01;
+
+    gainMain = audioCtx.createGain();
+    gainMain.gain.value = 0.08;
+
+    osc.connect(gainMain);
+    noise.connect(noiseGain);
+    noiseGain.connect(gainMain);
+    gainMain.connect(audioCtx.destination);
+
+    osc.start();
+    noise.start();
+    soundOn = true;
+    btnSound.textContent = "🔊 звук: вкл";
+  } catch (e) {
+    console.warn("audio failed:", e);
+  }
+}
+
+function stopSound() {
+  try {
+    if (osc) { osc.stop(); osc.disconnect(); osc = null; }
+    if (gainMain) { gainMain.disconnect(); gainMain = null; }
+    if (noiseGain) { noiseGain.disconnect(); noiseGain = null; }
+    if (audioCtx) { audioCtx.close(); audioCtx = null; }
+  } catch (e) {}
+  soundOn = false;
+  btnSound.textContent = "🔊 звук: выкл";
+}
+
+// ─── init ──────────────────────────────────────────────────
 async function init() {
   try {
+    sizeCanvas();
+
     markStep("b1", null, "загрузка pyodide 0.26.4…");
     statusEl.textContent = "loading pyodide…";
     pyodide = await loadPyodide({
@@ -284,25 +533,31 @@ async function init() {
 
     markStep("b3", null, "инициализация…");
     await pyodide.runPythonAsync(`
-# первичный вывод
 import asyncio
 from js import document
 async def first():
-    out = document.getElementById("output")
-    out.style.display = "block"
-    out.innerHTML = make_html(0, tick(0))
-    document.getElementById("boot").style.display = "none"
+    out = document.getElementById("boot")
+    out.style.display = "none"
+    panel = document.getElementById("panel")
+    panel.innerHTML = render_panel()
+    # первый кадр
+    doc = document
+    canvas = doc.getElementById("canvas")
+    ctx = canvas.getContext("2d")
+    canvas.width = canvas.clientWidth
+    canvas.height = canvas.clientHeight
+    # стартуем поток сразу
+    start_stream()
 asyncio.ensure_future(first())
     `);
-
     markStep("b3", true, "готово");
-    statusEl.textContent = "ready";
-    boot.style.display = "none";
-    output.style.display = "block";
+
+    statusEl.textContent = "streaming…";
+    bootEl.style.display = "none";
 
     btnRun.disabled = false;
     btnStop.disabled = false;
-    btnDoors.disabled = false;
+    btnSound.disabled = false;
     btnAudit.disabled = false;
 
   } catch (e) {
@@ -312,58 +567,38 @@ asyncio.ensure_future(first())
   }
 }
 
-// ─── кнопки ──────────────────────────────────────────────────
+// ─── кнопки ────────────────────────────────────────────────
 btnRun.addEventListener("click", async () => {
   if (!pyodide) return;
-  btnRun.disabled = true;
-  statusEl.textContent = "streaming…";
   await pyodide.runPythonAsync("start_stream()");
+  statusEl.textContent = "streaming…";
+  btnRun.disabled = true;
 });
 
 btnStop.addEventListener("click", async () => {
   if (!pyodide) return;
   await pyodide.runPythonAsync("stop_stream()");
-  btnRun.disabled = false;
   statusEl.textContent = "stopped";
+  btnRun.disabled = false;
 });
 
-btnDoors.addEventListener("click", async () => {
-  if (!pyodide) return;
-  const html = await pyodide.runPythonAsync(`
-doors = DOORS
-'<div class="section"><h2>· 5 дверей</h2><div>' + ' '.join(f'<span class="door-btn">{d}</span>' for d in doors) + '</div></div>'
-  `);
-  output.innerHTML = html;
+btnSound.addEventListener("click", () => {
+  if (!soundOn) startSound();
+  else stopSound();
 });
 
 btnAudit.addEventListener("click", async () => {
   if (!pyodide) return;
-  btnAudit.addEventListener("click", async () => {
-  if (!pyodide) return;
-  const result = await pyodide.runPythonAsync(`
-import json
-r = run_audit_demo()
-json.dumps(r, ensure_ascii=False)
-  `);
-  const r = JSON.parse(result.toString());
-  output.innerHTML = `
-    <div class="section">
-      <h2>· аудит демо</h2>
-      <div class="row"><span class="k">verdict</span><span class="v">${r.verdict}</span></div>
-      <div class="row"><span class="k">failed</span><span class="v">${r.failed.join(', ') || '—'}</span></div>
-      <div class="row"><span class="k">request</span><span class="v">${r.request_id}</span></div>
-    </div>`;
-});
-  output.innerHTML = `
-    <div class="section">
-      <h2>· аудит демо</h2>
-      <div class="row"><span class="k">verdict</span><span class="v">${r.verdict}</span></div>
-      <div class="row"><span class="k">failed</span><span class="v">${r.failed.join(', ') || '—'}</span></div>
-      <div class="row"><span class="k">request</span><span class="v">${r.request_id}</span></div>
-    </div>`;
+  await pyodide.runPythonAsync("run_audit()");
+  btnAuditClose.style.display = "inline-block";
 });
 
-// ─── старт ───────────────────────────────────────────────────
+btnAuditClose.addEventListener("click", async () => {
+  if (!pyodide) return;
+  await pyodide.runPythonAsync("close_audit()");
+  btnAuditClose.style.display = "none";
+});
+
 init();
 </script>
 
