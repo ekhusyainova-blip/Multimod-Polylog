@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Multimod Polilog — runtime v0.4.
+Multimod Polilog — runtime v0.5.
 Токен: MONOMOD::MM5FFF681946L6G6A111
 """
 
@@ -172,8 +172,6 @@ class Auditor:
         Local-аудит: проверяет update_request по 4 вызовам.
         Роли old и new — внутри одного процесса.
 
-        H006: гибрид (local=audit).
-
         challenges возвращается как dict (не list):
         - имена вызовов видны в результате
         - failed перечисляет упавшие вызовы
@@ -198,10 +196,7 @@ class Auditor:
         }
 
     def _check_k_touched(self, request: dict) -> bool:
-        """
-        Проверяет, затрагивает ли request K (токен, границы, 1:1:1).
-        Возвращает True если безопасно, False если затрагивает.
-        """
+        """Затрагивает ли request K (токен, границы, 1:1:1)? True=безопасно."""
         target = str(request.get("target", ""))
         change = str(request.get("change", ""))
         if "genome.json" in target and "token" in change.lower():
@@ -209,28 +204,18 @@ class Auditor:
         return True
 
     def _check_policies_compatible(self, request: dict) -> bool:
-        """
-        H009: совместимость политик.
-        HYPOTHESIS: 5 проверок не определены формально.
-        Сейчас — заглушка: всегда True.
-        """
+        """H009: совместимость политик. HYPOTHESIS: заглушка True."""
         return True
 
     def _check_append_only(self, request: dict) -> bool:
-        """
-        Проверяет, что request не нарушает append-only.
-        """
+        """Не нарушает ли request append-only?"""
         action = str(request.get("action", ""))
         if action in ("overwrite", "delete"):
             return False
         return True
 
     def _check_connections_intact(self, request: dict) -> bool:
-        """
-        Проверяет, что request не рвёт активные соединения.
-        HYPOTHESIS: проверка соединений не определена.
-        Сейчас — заглушка: всегда True.
-        """
+        """HYPOTHESIS: заглушка True."""
         return True
 
 
@@ -272,11 +257,11 @@ class Runtime:
         self.running = False
 
     def append_history(self, event: dict):
-        """A21: пишет в history (v0.4)."""
+        """A21: пишет в history (v0.5)."""
         self.history.append(event)
 
     def boot(self):
-        print(f"🧬 Multimod Polilog — runtime v0.4")
+        print(f"🧬 Multimod Polilog — runtime v0.5")
         print(f"   token: MONOMOD::MM5FFF681946L6G6A111")
         print(f"   mode:  {self.mode}")
         print()
@@ -317,13 +302,13 @@ class Runtime:
             iteration = 0
             while self.running:
                 iteration += 1
-                if self.test_iterations and iteration >= self.testolo_iterations:
-                    print(f"[RUN]", test mode — exit after {iteration} iterations "")
-                   hy break
+                if self.test_iterations and iteration >= self.test_iterations:
+                    print(f"[RUN] test mode — exit after {iteration} iterations")
+                    break
                 time.sleep(1)
-brid        except KeyboardInterrupt:
+        except KeyboardInterrupt:
             print()
--peer            print("[RUN] KeyboardInterrupt — stopping cleanly")
+            print("[RUN] KeyboardInterrupt — stopping cleanly")
         finally:
             self.running = False
 
@@ -341,13 +326,14 @@ def positive_int(value):
 def parse_args():
     p = argparse.ArgumentParser(prog="runtime.py",
                                 description="Multimod Polilog runtime. Default mode=solo.")
-    p.add_argument("--mode", choices=["s", "hybrid-cell", "remote"],
+    p.add_argument("--mode",
+                   choices=["solo", "hybrid-peer", "hybrid-cell", "remote"],
                    default="solo")
     p.add_argument("--test-iterations", type=positive_int, default=None)
     p.add_argument("--daemon", action="store_true")
     p.add_argument("--no-ui", action="store_true")
     p.add_argument("--version", action="version",
-                   version="runtime.py 0.4 — MONOMOD::MM5FFF681946L6G6A111")
+                   version="runtime.py 0.5 — MONOMOD::MM5FFF681946L6G6A111")
     return p.parse_args()
 
 
