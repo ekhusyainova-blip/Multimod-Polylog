@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="MONOMOD">
+<meta name="theme-color" content="#050508">
+<title>MONOMOD</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html, body {
+  height:100%;
+  background:#050508;
+  color:#c8c8d4;
+  font:13px/1.5 'Courier New', monospace;
+  overflow:hidden;
+}
+#app {
+  position:absolute; inset:0;
+  display:grid;
+  grid-template-rows: auto 1fr auto;
+}
+#header {
+  padding:8px 12px;
+  background:#08080c;
+  border-bottom:1px solid #14141c;
+  display:flex; gap:8px; align-items:center;
+  font-size:10px; letter-spacing:1.2px;
+  flex-wrap:wrap;
+}
+#header .core { color:#e8c39e; font-weight:bold; }
+#header .tok  { color:#4dd0c7; font-size:9px; }
+#header .st   { color:#8888a0; margin-left:auto; }
+
+#main {
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  overflow:hidden;
+}
+
+#state-panel {
+  position:absolute;
+  top:12px; left:12px;
+  display:grid;
+  grid-template-columns:auto auto;
+  gap:2px 10px;
+  font-size:9px;
+  color:#44445a;
+}
+#state-panel .k { color:#666680; }
+#state-panel .v { color:#8888a0; }
+
+#inv {
+  position:absolute;
+  top:12px; right:14px;
+  font-size:14px;
+  letter-spacing:4px;
+  color:#e8c39e;
+  opacity:0.85;
+}
+
+#text {
+  text-align:center;
+  max-width:90%;
+  font-size:22px;
+  line-height:1.8;
+  color:#d8d8e0;
+  text-shadow:0 0 20px #050508, 0 0 40px #050508;
+  white-space:pre-wrap;
+}
+
+#center-dot {
+  position:absolute;
+  left:50%; top:50%;
+  width:4px; height:4px;
+  background:#e8c39e;
+  border-radius:50%;
+  transform:translate(-50%,-50%);
+  opacity:0.6;
+  pointer-events:none;
+}
+
+#footer {
+  padding:8px 12px;
+  background:#08080c;
+  border-top:1px solid #14141c;
+  display:flex; gap:6px; align-items:center;
+  flex-wrap:wrap;
+  font-size:10px;
+}
+#footer .k { color:#4dd0c7; }
+#footer .v { color:#8888a0; }
+#footer .sep { color:#22222e; }
+
+#boot {
+  position:absolute; inset:0;
+  z-index:10;
+  background:#050508;
+  color:#44445a;
+  padding:20px;
+  font-size:11px;
+}
+#boot .step { padding:3px 0; }
+#boot .ok { color:#2ed573; }
+#boot .err { color:#ff4757; }
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <div id="header">
+    <span class="core">𝕄_full</span>
+    <span class="tok">MONOMOD::MM5FFF681946L6G6A111</span>
+    <span class="st" id="h-status">loading…</span>
+  </div>
+
+  <div id="main">
+    <div id="state-panel"></div>
+    <div id="inv">1 : 1 : 1</div>
+    <div id="center-dot"></div>
+    <div id="text"></div>
+
+    <div id="boot">
+      <div class="step" id="b1">· загрузка pyodide…</div>
+      <div class="step" id="b2">· загрузка brain…</div>
+      <div class="step" id="b3">· инициализация…</div>
+    </div>
+  </div>
+
+  <div id="footer">
+    <span class="k">t:</span><span class="v" id="f-t">0</span>
+    <span class="sep">·</span>
+    <span class="k">form:</span><span class="v" id="f-form">—</span>
+    <span class="sep">·</span>
+    <span class="k">mode:</span><span class="v" id="f-mode">mixed</span>
+    <span class="sep">·</span>
+    <span class="k">hash:</span><span class="v" id="f-hash">—</span>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+
+<script type="text/python" id="brain-code">
+import math
+import hashlib
+from js import document
+
+# ─── Brain ────────────────────────────────────────────────
+class Brain:
+    RAW = "MONOMOD::MM5FFF681946L6G6A111"
+
+    def __init__(self, mode="mixed"):
+        self.mode = mode
+        self.coords = [ord(c) for c in self.RAW.replace("::", "")]
+        self.center = sum(self.coords) / len(self.coords)
+        self.t = 0
+        self.state = {
+            "density": 0.0,
+            "coherence": 0.0,
+            "rhythm": 0.0,
+            "depth": 0.0,
+            "novelty": 0.0,
+            "stress": 0.0,
+        }
+        self.form = "words"
+        self.text = "·"
+
+    # ─── tick: состояние из координат ──────────────────────
+    def tick(self):
+        self.t += 1
+        t = self.t
+        c = self.coords
+
+        # каждая ось — своя фаза от координат
+        self.state["density"]   = (math.sin(t * 0.03 + c[0] * 0.01) + 1) / 2
+        self.state["coherence"] = (math.sin(t * 0.017 + c[1] * 0.01) + 1) / 2
+        self.state["rhythm"]    = (math.sin(t * 0.011 + c[2] * 0.01) + 1) / 2
+        self.state["depth"]     = (math.sin(t * 0.007 + c[3] * 0.01) + 1) / 2
+        self.state["novelty"]   = (math.sin(t * 0.023 + c[4] * 0.01) + 1) / 2
+
+        # stress — отклонение от среднего
+        vals = [self.state[k] for k in
+                ("density", "coherence", "rhythm", "depth", "novelty")]
+        m = sum(vals) / len(vals)
+        self.state["stress"] = sum((v - m) ** 2 for v in vals) / len(vals)
+
+        # decide_form
+        self.form = self._decide()
+        # text из формы
+        self.text = self._text()
+
+    # ─── decide_form ───────────────────────────────────────
+    def _decide(self):
+        s = self.state
+        if s["stress"] > 0.15:    return "canvas"
+        if s["novelty"] < 0.30:   return "atoms"
+        if s["depth"] < 0.40:     return "phrases"
+        if s["density"] < 0.25:   return "syllables"
+        return "words"
+
+    # ─── text: порождение по форме ─────────────────────────
+    def _text(self):
+        s = self.state
+        form = self.form
+        t = self.t
+        # уровни: 0.2 → 0.9
+        level = (s["density"] + s["novelty"]) / 2
+
+        if form == "atoms":
+            seed = t % 1000
+            row = ""
+            chars = "·∙⋅°oO0#*+~-=<>/\\|_"
+            for i in range(20):
+                row += chars[(seed + i * 7) % len(chars)]
+            return row
+
+        if form == "syllables":
+            syl = ["ra", "ql", "mh", "wg", "Λ6", "Γ6", "Α6", "Ψ3", "Ω4"]
+            seed = t % 1000
+            return " ".join(syl[(seed + i * 3) % len(syl)] for i in range(6))
+
+        if form == "words":
+            words = ["узел", "дом", "запрос", "Клепа", "связь",
+                     "форма", "такт", "смысл", "мост", "ядро"]
+            seed = t % 1000
+            return " · ".join(words[(seed + i * 5) % len(words)]
+                              for i in range(5))
+
+        if form == "phrases":
+            phrases = [
+                "Клепа ведёт. Голос один.",
+                "Ядро держит границы.",
+                "Мост не один. Их тринадцать.",
+                "Раскрытие растёт из центра.",
+                "68 узлов. 194 связи. Один путь.",
+                "Λ держит. Γ ведёт. Α дышит.",
+            ]
+            seed = t % 1000
+            return "\n".join(phrases[(seed + i * 2) % len(phrases)]
+                             for i in range(2))
+
+        if form == "canvas":
+            bars = []
+            for i in range(5):
+                v = list(self.state.values())[i]
+                bar = "█" * int(v * 20)
+                bars.append(bar)
+            return "\n".join(bars)
+
+        return "1 : 1 : 1"
+
+    # ─── vector_hash ───────────────────────────────────────
+    def hash(self):
+        raw = f"{self.state['density']:.2f}|{self.state['coherence']:.2f}|{self.t}"
+        return hashlib.sha256(raw.encode()).hexdigest()[:8]
+
+
+# ─── render ───────────────────────────────────────────────
+def render(brain):
+    doc = document
+    # state panel
+    panel = doc.getElementById("state-panel")
+    items = []
+    for k, v in brain.state.items():
+        items.append(f"<div class='k'>{k}</div><div class='v'>{v:.3f}</div>")
+    panel.innerHTML = "".join(items)
+
+    # text
+    doc.getElementById("text").textContent = brain.text
+
+    # footer
+    doc.getElementById("f-t").textContent = str(brain.t)
+    doc.getElementById("f-form").textContent = brain.form
+    doc.getElementById("f-mode").textContent = brain.mode
+    doc.getElementById("f-hash").textContent = brain.hash()
+
+
+# ─── main loop ────────────────────────────────────────────
+brain = Brain(mode="mixed")
+
+async def loop():
+    import asyncio
+    doc = document
+    doc.getElementById("h-status").textContent = "streaming…"
+    doc.getElementById("boot").style.display = "none"
+    while True:
+        brain.tick()
+        render(brain)
+        await asyncio.sleep(0.1)
+</script>
+
+<script>
+"use strict";
+
+async function init() {
+  const statusEl = document.getElementById("h-status");
+  const boot = document.getElementById("boot");
+
+  function mark(id, ok, text) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = "· " + text;
+    el.className = "step " + (ok === true ? "ok" : ok === false ? "err" : "");
+  }
+
+  try {
+    mark("b1", null, "загрузка pyodide 0.26.4…");
+    statusEl.textContent = "loading pyodide…";
+
+    const pyodide = await loadPyodide({
+      indexURL: "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/"
+    });
+    mark("b1", true, "pyodide загружен");
+
+    mark("b2", null, "загрузка brain…");
+    const code = document.getElementById("brain-code").textContent;
+    await pyodide.runPythonAsync(code);
+    mark("b2", true, "brain готов");
+
+    mark("b3", null, "инициализация…");
+    await pyodide.runPythonAsync("import asyncio; asyncio.ensure_future(loop())");
+    mark("b3", true, "готово");
+
+  } catch (e) {
+    console.error(e);
+    mark("b1", false, "ошибка: " + (e && e.message ? e.message : e));
+    statusEl.textContent = "error";
+  }
+}
+
+init();
+</script>
+
+</body>
+</html>
