@@ -1,7 +1,7 @@
 {
   "genome_id": "Multimod Polilog",
   "token": "MONOMOD::MM5FFF681946L6G6A111",
-  "version": "0.4",
+  "version": "0.5",
   "created_at": "2026-10-01",
 
   "decisions": {
@@ -29,7 +29,10 @@
     "accepted": {
       "A1":  { "element": "K = anchor (select / value / bind)", "source": "assistant", "accepted_by": "user", "date": "2026-10-01" },
       "A2":  { "element": "K берёт точку, не создаёт", "source": "assistant", "accepted_by": "user", "date": "2026-10-01" },
+      "A3":  { "element": "C = old ⊕ new (индуктивно)", "source": "assistant", "accepted_by": "user", "date": "2026-10-01" },
+      "A4":  { "element": "old = текущая голова", "source": "assistant", "accepted_by": "user", "date": "2026-10-01" },
       "A5":  { "element": "гибрид: local=audit, peer/cell=dialog", "source": "assistant", "accepted_by": "user", "date": "2026-10-01" },
+      "A10": { "element": "итерация = полный цикл 4 вызовов", "source": "assistant", "accepted_by": "user", "date": "2026-10-01" },
       "A15": { "element": "one transport = one file = one mode", "source": "assistant", "accepted_by": "user", "date": "2026-10-01", "classifies": "log_policy" },
       "A19": { "element": "circularity acknowledged", "source": "assistant", "accepted_by": "user", "date": "2026-10-01", "classifies": "provenance_policy" },
       "A20": { "element": "history = deque(maxlen=1000) in-memory", "source": "assistant", "accepted_by": "user", "date": "2026-10-01" },
@@ -37,14 +40,27 @@
       "A22": { "element": "history эфемерна по решению", "source": "assistant", "accepted_by": "user", "date": "2026-10-01" }
     },
     "refuted": {
-      "R1": { "element": "M#rqlmhwgt", "source": "assistant", "refuted_by": "user", "date": "2026-10-01", "reason": "фикция" }
+      "R1":  { "element": "M#rqlmhwgt", "source": "assistant", "refuted_by": "user", "date": "2026-10-01", "reason": "фикция" },
+      "R2":  { "element": "+110.347", "source": "assistant", "refuted_by": "user", "date": "2026-10-01", "reason": "фикция" },
+      "R3":  { "element": "Λ6 · Γ6 · Α6 = 6^L · 6^G · 6^A", "source": "assistant", "refuted_by": "user", "date": "2026-10-01", "reason": "фикция" },
+      "R4":  { "element": "CORE = M# · 68 · 194 · Λ6 · Γ6 · Α6", "source": "assistant", "refuted_by": "user", "date": "2026-10-01", "reason": "фикция" },
+      "R5":  { "element": "p1…p10 (Policy Router и т.д.)", "source": "assistant", "refuted_by": "user", "date": "2026-10-01", "reason": "фикция" },
+      "R6":  { "element": "MM5 = Memory 512MB", "source": "assistant", "refuted_by": "user", "date": "2026-10-01", "reason": "натяжка" },
+      "R7":  { "element": "FF68 = Timeout 1500ms", "source": "assistant", "refuted_by": "user", "date": "2026-10-01", "reason": "натяжка" },
+      "R8":  { "element": "1946 = UID/GID", "source": "assistant", "refuted_by": "user", "date": "2026-10-01", "reason": "натяжка" },
+      "R9":  { "element": "L6G6A111 = профиль изоляции", "source": "assistant", "refuted_by": "user", "date": "2026-10-01", "reason": "фикция" },
+      "R10": { "element": "M_full = GIT ∘ K ∘ ВОЗВРАТ ∘ argmax S ∘ M# + 110.347", "source": "assistant", "refuted_by": "user", "date": "2026-10-01", "reason": "фикция" },
+      "R11": { "element": "M_full = 1 : 1 : 1 : (M_full : M+ : M++)", "source": "assistant", "refuted_by": "user", "date": "2026-10-01", "reason": "фикция" },
+      "R12": { "element": "M_full = K + p1 + … + p10", "source": "assistant", "refuted_by": "user", "date": "2026-10-01", "reason": "фикция" }
     }
   },
 
   "hypotheses": {
     "H001": { "text": "K берёт точку из GIT, не создаёт", "status": "confirmed", "introduced_at": "2026-10-01", "layer": "0", "confirmed_at": "2026-10-02", "evidence": "tests/test_k_select.py: 4 passed" },
     "H002": { "text": "p1..p10 — 10 компонент ядра", "status": "open", "introduced_at": "2026-10-01", "layer": "0" },
-    "H003": { "text": "M# = хэш-маркер ядра", "status": "open", "introduced_at": "2026-10-01", "layer": "0" }
+    "H003": { "text": "M# = хэш-маркер ядра", "status": "open", "introduced_at": "2026-10-01", "layer": "0" },
+    "H004": { "text": "Auditor.run возвращает verdict по 4 вызовам", "status": "confirmed", "introduced_at": "2026-10-02", "layer": "1", "confirmed_at": "2026-10-02", "evidence": "tests/test_auditor.py: 5 passed" },
+    "H005": { "text": "Гибрид: local=audit, peer/cell=dialog", "status": "partial", "introduced_at": "2026-10-02", "layer": "1", "note": "local=audit confirmed (5 tests). peer/cell=dialog — not implemented yet." }
   },
 
   "notes": {
