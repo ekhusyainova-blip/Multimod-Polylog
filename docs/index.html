@@ -338,11 +338,22 @@ doors = DOORS
 
 btnAudit.addEventListener("click", async () => {
   if (!pyodide) return;
+  btnAudit.addEventListener("click", async () => {
+  if (!pyodide) return;
   const result = await pyodide.runPythonAsync(`
 import json
 r = run_audit_demo()
-json.dumps(r, ensure `);
-  const r = JSON.parse(result);
+json.dumps(r, ensure_ascii=False)
+  `);
+  const r = JSON.parse(result.toString());
+  output.innerHTML = `
+    <div class="section">
+      <h2>· аудит демо</h2>
+      <div class="row"><span class="k">verdict</span><span class="v">${r.verdict}</span></div>
+      <div class="row"><span class="k">failed</span><span class="v">${r.failed.join(', ') || '—'}</span></div>
+      <div class="row"><span class="k">request</span><span class="v">${r.request_id}</span></div>
+    </div>`;
+});
   output.innerHTML = `
     <div class="section">
       <h2>· аудит демо</h2>
