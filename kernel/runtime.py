@@ -173,19 +173,26 @@ class Auditor:
         Роли old и new — внутри одного процесса.
 
         H006: гибрид (local=audit).
-        """
-        challenges = [
-            self._check_k_touched(request),
-            self._check_policies_compatible(request),
-            self._check_append_only(request),
-            self._check_connections_intact(request),
-        ]
 
-        verdict = "accept" if all(challenges) else "reject"
+        challenges возвращается как dict (не list):
+        - имена вызовов видны в результате
+        - failed перечисляет упавшие вызовы
+        - порядок вызовов не влияет на чтение результата
+        """
+        challenges = {
+            "k_touched": self._check_k_touched(request),
+            "policies_compatible": self._check_policies_compatible(request),
+            "append_only": self._check_append_only(request),
+            "connections_intact": self._check_connections_intact(request),
+        }
+
+        verdict = "accept" if all(challenges.values()) else "reject"
+        failed = [name for name, ok in challenges.items() if not ok]
 
         return {
             "verdict": verdict,
             "challenges": challenges,
+            "failed": failed,
             "request_id": request.get("id"),
             "mode": "audit",
         }
@@ -197,7 +204,6 @@ class Auditor:
         """
         target = str(request.get("target", ""))
         change = str(request.get("change", ""))
-        # токен в genome — запрещено
         if "genome.json" in target and "token" in change.lower():
             return False
         return True
@@ -311,13 +317,13 @@ class Runtime:
             iteration = 0
             while self.running:
                 iteration += 1
-                if self.test_iterations and iteration >= self.test_iterations:
-                    print(f"[RUN] test mode — exit after {iteration} iterations")
-                    break
+                if self.test_iterations and iteration >= self.testolo_iterations:
+                    print(f"[RUN]", test mode — exit after {iteration} iterations "")
+                   hy break
                 time.sleep(1)
-        except KeyboardInterrupt:
+brid        except KeyboardInterrupt:
             print()
-            print("[RUN] KeyboardInterrupt — stopping cleanly")
+-peer            print("[RUN] KeyboardInterrupt — stopping cleanly")
         finally:
             self.running = False
 
@@ -335,7 +341,7 @@ def positive_int(value):
 def parse_args():
     p = argparse.ArgumentParser(prog="runtime.py",
                                 description="Multimod Polilog runtime. Default mode=solo.")
-    p.add_argument("--mode", choices=["solo", "hybrid-peer", "hybrid-cell", "remote"],
+    p.add_argument("--mode", choices=["s", "hybrid-cell", "remote"],
                    default="solo")
     p.add_argument("--test-iterations", type=positive_int, default=None)
     p.add_argument("--daemon", action="store_true")
