@@ -42,7 +42,7 @@
   },
 
   "hypotheses": {
-    "H001": { "text": "K берёт точку из GIT, не создаёт", "status": "open", "introduced_at": "2026-10-01", "layer": "0" },
+    "H001": { "text": "K берёт точку из GIT, не создаёт", "status": "confirmed", "introduced_at": "2026-10-01", "layer": "0", "confirmed_at": "2026-10-02", "evidence": "tests/test_k_select.py: 4 passed" },
     "H002": { "text": "p1..p10 — 10 компонент ядра", "status": "open", "introduced_at": "2026-10-01", "layer": "0" },
     "H003": { "text": "M# = хэш-маркер ядра", "status": "open", "introduced_at": "2026-10-01", "layer": "0" }
   },
