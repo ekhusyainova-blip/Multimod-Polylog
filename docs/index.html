@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Polilog">
+<meta name="theme-color" content="#050508">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23050508'/><text x='50' y='65' font-size='60' text-anchor='middle' fill='%23e8c39e'>𝕄</text></svg>">
+<title>Multimod Polilog</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html, body { height:100%; background:#050508; color:#c8c8d4;
+  font: 13px/1.5 'Courier New', monospace; overflow:hidden; }
+
+#app { position:absolute; inset:0; display:grid;
+  grid-template-rows: auto 1fr auto; }
+
+#header { padding:10px 14px; background:#08080c;
+  border-bottom:1px solid #14141c;
+  display:flex; gap:10px; align-items:center;
+  font-size:10px; letter-spacing:1.4px;
+  flex-wrap:wrap; }
+#header .core { color:#e8c39e; font-weight:bold; }
+#header .tok  { color:#4dd0c7; font-size:9px; }
+#header .st   { color:#8888a0; margin-left:auto; }
+
+#main { position:relative; overflow-y:auto; padding:14px; }
+
+#boot { color:#44445a; font-size:11px; padding:20px; }
+#boot .step { padding:3px 0; }
+#boot .ok { color:#2ed573; }
+#boot .err { color:#ff4757; }
+
+#output {
+  white-space:pre-wrap;
+  font-size:13px; line-height:1.7;
+  color:#d8d8e0;
+}
+
+.section {
+  border:1px solid #14141c;
+  background:#08080c;
+  padding:12px; margin-bottom:10px;
+}
+.section h2 {
+  font-size:10px; color:#4dd0c7;
+  font-weight:normal; letter-spacing:1.6px;
+  text-transform:uppercase; margin-bottom:8px;
+}
+.section .row {
+  display:flex; justify-content:space-between;
+  padding:3px 0; font-size:11px;
+  border-bottom:1px solid #14141c;
+}
+.section .row:last-child { border-bottom:none; }
+.section .k { color:#4dd0c7; }
+.section .v { color:#c8c8d4; }
+
+#footer { padding:10px 14px; background:#08080c;
+  border-top:1px solid #14141c;
+  display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+#footer button {
+  background:#0e0e14; border:1px solid #1c1c26;
+  color:#8888a0; padding:8px 12px;
+  font:9px 'Courier New', monospace;
+  letter-spacing:1.2px; cursor:pointer;
+  text-transform:uppercase; }
+#footer button:hover { border-color:#4dd0c7; color:#4dd0c7; }
+#footer button.on { border-color:#4dd0c7; color:#4dd0c7; }
+#footer button:disabled { opacity:0.3; cursor:wait; }
+
+.door-btn { display:inline-block; margin:2px 4px 2px 0;
+  background:#0e0e14; border:1px solid #1c1c26;
+  color:#8888a0; padding:6px 10px;
+  font:9px 'Courier New', monospace;
+  cursor:pointer; }
+.door-btn.on { border-color:#4dd0c7; color:#4dd0c7; }
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <div id="header">
+    <span class="core">𝕄_full</span>
+    <span class="tok">MONOMOD::MM5FFF681946L6G6A111</span>
+    <span class="st" id="h-status">loading…</span>
+  </div>
+
+  <div id="main">
+    <div id="boot">
+      <div class="step" id="b1">· загрузка pyodide…</div>
+      <div class="step" id="b2">· загрузка runtime…</div>
+      <div class="step" id="b3">· инициализация…</div>
+    </div>
+    <div id="output" style="display:none"></div>
+  </div>
+
+  <div id="footer">
+    <button id="btn-run" disabled>▶ запустить поток</button>
+    <button id="btn-stop" disabled>⏹ остановить</button>
+    <button id="btn-doors" disabled>5 дверей</button>
+    <button id="btn-audit" disabled>аудит</button>
+  </div>
+
+</div>
+
+<!-- Pyodide 0.26.4 — стабильная версия для iOS Safari -->
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+
+<script>
+"use strict";
+
+let pyodide = null;
+let streaming = false;
+let streamTask = null;
+
+const boot = document.getElementById("boot");
+const output = document.getElementById("output");
+const statusEl = document.getElementById("h-status");
+const btnRun = document.getElementById("btn-run");
+const btnStop = document.getElementById("btn-stop");
+const btnDoors = document.getElementById("btn-doors");
+const btnAudit = document.getElementById("btn-audit");
+
+function markStep(id, ok, text) {
+  const el = document.getElementById(id);
+  el.textContent = "· " + text;
+  el.className = "step " + (ok === true ? "ok" : ok === false ? "err" : "");
+}
+
+// ─── runtime на Python (встроен) ─────────────────────────────
+const RUNTIME_PY = `
+import asyncio
+from js import document
+from collections import deque
+
+TOKEN = "MONOMOD::MM5FFF681946L6G6A111"
+DOORS = ["МОНОЛОГ", "DIMOD", "MULTIMOD", "ДИАЛОГ", "ПОЛИЛОГ"]
+INVARIANT = {"я": 1, "он": 1, "хаос": 1}
+
+class K:
+    def select(self, history, condition):
+        for event in reversed(history):
+            if condition(event):
+                return event.get("id")
+        return None
+    def value(self):
+        return {"anchor": None, "components": []}
+    def bind(self, *constants):
+        return {"constants": list(constants)}
+
+class Auditor:
+    def run(self, request):
+        challenges = {
+            "k_touched": self._check_k_touched(request),
+            "policies_compatible": True,
+            "append_only": self._check_append_only(request),
+            "connections_intact": True,
+        }
+        verdict = "accept" if all(challenges.values()) else "reject"
+        failed = [k for k, v in challenges.items() if not v]
+        return {
+            "verdict": verdict,
+            "challenges": challenges,
+            "failed": failed,
+            "request_id": request.get("id"),
+            "mode": "audit",
+        }
+    def _check_k_touched(self, request):
+        target = str(request.get("target", ""))
+        change = str(request.get("change", ""))
+        if "genome.json" in target and "token" in change.lower():
+            return False
+        return True
+    def _check_append_only(self, request):
+        action = str(request.get("action", ""))
+        if action in ("overwrite", "delete"):
+            return False
+        return True
+
+# история в памяти
+history = deque(maxlen=1000)
+k = K()
+auditor = Auditor()
+
+# заполним историю для демо
+history.append({"id": "e1", "type": "principle", "text": "P1"})
+history.append({"id": "e2", "type": "deepening", "text": "R1"})
+history.append({"id": "e3", "type": "principle", "text": "P2"})
+
+def tick(t):
+    import math
+    return {
+        "t": t,
+        "density": 0.5 + 0.5 * math.sin(t * 0.03),
+        "coherence": 0.5 + 0.5 * math.sin(t * 0.017 + 1.1),
+        "rhythm": 0.5 + 0.5 * math.sin(t * 0.011 + 2.2),
+        "depth": 0.5 + 0.5 * math.sin(t * 0.007 + 3.3),
+        "novelty": 0.5 + 0.5 * math.sin(t * 0.023 + 4.4),
+    }
+
+def make_html(t, s):
+    v = s
+    k_id = k.select(history, lambda e: e.get("type") == "principle")
+    a_id = auditor.run({"id": "r" + str(t), "target": "runtime.py"})
+    return f"""
+<div class="section">
+  <h2>· инвариант</h2>
+  <div class="row"><span class="k">1 : 1 : 1</span><span class="v">я · он · хаос</span></div>
+  <div class="row"><span class="k">токен</span><span class="v">{TOKEN}</span></div>
+</div>
+<div class="section">
+  <h2>· поток (t={t})</h2>
+  <div class="row"><span class="k">density</span><span class="v">{v['density']:.3f}</span></div>
+  <div class="row"><span class="k">coherence</span><span class="v">{v['coherence']:.3f}</span></div>
+  <div class="row"><span class="k">rhythm</span><span class="v">{v['rhythm']:.3f}</span></div>
+  <div class="row"><span class="k">depth</span><span class="v">{v['depth']:.3f}</span></div>
+  <div class="row"><span class="k">novelty</span><span class="v">{v['novelty']:.3f}</span></div>
+</div>
+<div class="section">
+  <h2>· K.select</h2>
+  <div class="row"><span class="k">principle</span><span class="v">{k_id}</span></div>
+</div>
+<div class="section">
+  <h2>· Auditor.run</h2>
+  <div class="row"><span class="k">verdict</span><span class="v">{a_id['verdict']}</span></div>
+  <div class="row"><span class="k">failed</span><span class="v">{', '.join(a__id['failed']) or '—'}</span></div>
+</div>
+<div class="section">
+  <h2>· 5 дверей</h2>
+  <div>{asci' '.join(f'i<span class="door-btn">{d}</span=False>' for d in DOORS)})
+ </div>
+</div>
+"""
+
+async def stream_loop():
+    out = document.getElementById("output")
+    t = 0
+    while streaming:
+        t += 1
+        s = tick(t)
+        html = make_html(t, s)
+        out.innerHTML = html
+        await asyncio.sleep(0.15)
+
+def start_stream():
+    global streaming
+    streaming = True
+    asyncio.ensure_future(stream_loop())
+
+def stop_stream():
+    global streaming
+    streaming = False
+
+def run_audit_demo():
+    return auditor.run({
+        "id": "demo",
+        "target": "genome.json",
+        "change": "change token value",
+    })
+
+`;
+
+// ─── инициализация ───────────────────────────────────────────
+async function init() {
+  try {
+    markStep("b1", null, "загрузка pyodide 0.26.4…");
+    statusEl.textContent = "loading pyodide…";
+    pyodide = await loadPyodide({
+      indexURL: "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/"
+    });
+    markStep("b1", true, "pyodide загружен");
+
+    markStep("b2", null, "загрузка runtime…");
+    await pyodide.runPythonAsync(RUNTIME_PY);
+    markStep("b2", true, "runtime готов");
+
+    markStep("b3", null, "инициализация…");
+    await pyodide.runPythonAsync(`
+# первичный вывод
+import asyncio
+from js import document
+async def first():
+    out = document.getElementById("output")
+    out.style.display = "block"
+    out.innerHTML = make_html(0, tick(0))
+    document.getElementById("boot").style.display = "none"
+asyncio.ensure_future(first())
+    `);
+
+    markStep("b3", true, "готово");
+    statusEl.textContent = "ready";
+    boot.style.display = "none";
+    output.style.display = "block";
+
+    btnRun.disabled = false;
+    btnStop.disabled = false;
+    btnDoors.disabled = false;
+    btnAudit.disabled = false;
+
+  } catch (e) {
+    console.error(e);
+    markStep("b1", false, "ошибка: " + e.message);
+    statusEl.textContent = "error";
+  }
+}
+
+// ─── кнопки ──────────────────────────────────────────────────
+btnRun.addEventListener("click", async () => {
+  if (!pyodide) return;
+  btnRun.disabled = true;
+  statusEl.textContent = "streaming…";
+  await pyodide.runPythonAsync("start_stream()");
+});
+
+btnStop.addEventListener("click", async () => {
+  if (!pyodide) return;
+  await pyodide.runPythonAsync("stop_stream()");
+  btnRun.disabled = false;
+  statusEl.textContent = "stopped";
+});
+
+btnDoors.addEventListener("click", async () => {
+  if (!pyodide) return;
+  const html = await pyodide.runPythonAsync(`
+doors = DOORS
+'<div class="section"><h2>· 5 дверей</h2><div>' + ' '.join(f'<span class="door-btn">{d}</span>' for d in doors) + '</div></div>'
+  `);
+  output.innerHTML = html;
+});
+
+btnAudit.addEventListener("click", async () => {
+  if (!pyodide) return;
+  const result = await pyodide.runPythonAsync(`
+import json
+r = run_audit_demo()
+json.dumps(r, ensure `);
+  const r = JSON.parse(result);
+  output.innerHTML = `
+    <div class="section">
+      <h2>· аудит демо</h2>
+      <div class="row"><span class="k">verdict</span><span class="v">${r.verdict}</span></div>
+      <div class="row"><span class="k">failed</span><span class="v">${r.failed.join(', ') || '—'}</span></div>
+      <div class="row"><span class="k">request</span><span class="v">${r.request_id}</span></div>
+    </div>`;
+});
+
+// ─── старт ───────────────────────────────────────────────────
+init();
+</script>
+
+</body>
+</html>
